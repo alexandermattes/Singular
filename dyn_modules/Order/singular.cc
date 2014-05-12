@@ -10,6 +10,7 @@
 #include "nforder_ideal.h"
 #include "libpolys/coeffs/bigintmat.h"
 #include "temptest.h"
+#include "lattice.h"
 
 
 static int nforder_type_id=0;
@@ -440,15 +441,34 @@ static BOOLEAN smithtest(leftv result, leftv arg)
 static BOOLEAN tempTest(leftv result, leftv arg)
 { 
   if( (arg == NULL) 
-    ||(arg->Typ() != INT_CMD)) 
+    ||(arg->Typ() != BIGINTMAT_CMD)) 
   {
-    WerrorS("usage: TempTest(int)");
+    WerrorS("usage: TempTest(bigintmat)");
   }
-  int a = (int)(long)arg->Data();
-  result->rtyp = INT_CMD;
-  result->data = (char*)(long) temp_test(a);
+  bigintmat* a = (bigintmat *) arg->Data();
+//   bigintmat b;
+//   b.copy(a);
+  result->rtyp = BIGINTMAT_CMD;
+  result->data = (void*) temp_test(*a);
   return FALSE;
 }
+
+
+//Temporary testfunction to play arround with new functions
+//NOTE: remove later
+static BOOLEAN tempTest2(leftv result, leftv arg)
+{ 
+  if( (arg == NULL) 
+    ||(arg->Typ() != NUMBER_CMD)) 
+  {
+    WerrorS("usage: TempTest(number)");
+  }
+  number a = (number) arg->Data();
+  result->rtyp = NUMBER_CMD;
+  result->data = (void*) temp_test2(a);
+  return FALSE;
+}
+
 
 extern "C" int mod_init(SModulFunctions* psModulFunctions)
 {
@@ -525,7 +545,14 @@ extern "C" int mod_init(SModulFunctions* psModulFunctions)
           (currPack->libname? currPack->libname: ""),
           "TempTest",
           FALSE, 
-          tempTest); 
+          tempTest);
+  
+  //NOTE: remove later
+  psModulFunctions->iiAddCproc(
+          (currPack->libname? currPack->libname: ""),
+          "TempTest2",
+          FALSE, 
+          tempTest2);
 
   module_help_main(
      (currPack->libname? currPack->libname: "NFOrder"),// the library name,

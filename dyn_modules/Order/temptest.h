@@ -3,6 +3,9 @@
 
 //Temporary testfunction to play arround with new functions
 //NOTE: remove later
-int temp_test(int i);
+bigintmat* temp_test(bigintmat& a);
+
+number temp_test2(number a);
+
 
 #endif

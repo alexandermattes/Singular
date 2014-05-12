@@ -4,7 +4,8 @@ SOURCES = nforder.cpp nforder.h \
 	  singular.cc \
 	  nforder_elt.cc nforder_elt.h \
 	  nforder_ideal.cc nforder_ideal.h \
-	  temptest.cc temptest.h
+	  temptest.cc temptest.h \
+	  lattice.cc lattice.h
 
 MYINCLUDES =  -I${top_srcdir} -I${top_builddir} -I${srcdir} \
 -I${top_srcdir}/libpolys -I${top_builddir}/libpolys \
