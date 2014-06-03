@@ -1,11 +1,20 @@
 #ifndef TEMPTEST_HPP
 #define TEMPTEST_HPP
 
-//Temporary testfunction to play arround with new functions
+//Temporary testfunction to play around with new functions
 //NOTE: remove later
-bigintmat* temp_test(bigintmat& a);
+number temp_test(number a);
 
-number temp_test2(number a);
+void test_LLL();
 
+void test_Enumerate();
+
+void test_Minkowski();
+
+void memorytest();
+
+int average_length(bigintmat * m);
+
+double orthogonality_defect(bigintmat * m);
 
 #endif
