@@ -87,7 +87,8 @@
 #include <Singular/fehelp.h>
 #include <Singular/ipid.h>
 #include <misc/intvec.h>
-#include <kernel/febase.h>
+#include <kernel/oswrapper/feread.h>
+#include <Singular/fevoices.h>
 #include <polys/matpol.h>
 #include <polys/monomials/ring.h>
 #include <kernel/GBEngine/kstd1.h>
@@ -99,12 +100,12 @@
 #include <coeffs/numbers.h>
 #include <kernel/polys.h>
 #include <kernel/GBEngine/stairc.h>
-#include <kernel/timer.h>
+#include <kernel/oswrapper/timer.h>
 #include <Singular/cntrlc.h>
 #include <polys/monomials/maps.h>
 #include <kernel/GBEngine/syz.h>
 #include <Singular/lists.h>
-#include <libpolys/coeffs/longrat.h>
+#include <coeffs/longrat.h>
 #include <Singular/libparse.h>
 #include <coeffs/bigintmat.h>
 
@@ -234,9 +235,6 @@ void yyerror(const char * fmt)
     //Werror("leaving %s (line %d)",VoiceName(), currentVoice->curr_lineno);
     Werror("leaving %s",VoiceName());
   }
-  // libfac:
-  extern int libfac_interruptflag;
-  libfac_interruptflag=0;
 }
 
 

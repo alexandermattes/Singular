@@ -1,8 +1,6 @@
 
 #include <kernel/mod2.h>
 
-#include "mod2.h"
-
 #include <omalloc/omalloc.h>
 #include <misc/auxiliary.h>
 #include <misc/options.h>
@@ -12,7 +10,6 @@
 #include <polys/monomials/ring.h>
 
 
-#include <kernel/febase.h>
 #include <kernel/ideals.h>
 #include <kernel/GBEngine/kstd1.h>
 #include <kernel/GBEngine/khstd.h>

@@ -14,7 +14,7 @@
 #include "config.h"
 
 
-#include "assert.h"
+#include "cf_assert.h"
 #include "debug.h"
 #include "timing.h"
 
@@ -26,7 +26,6 @@
 #include "facHensel.h"
 #include "cf_gcd_smallp.h"
 #include "cf_map_ext.h"
-#include "algext.h"
 #include "cf_reval.h"
 #include "facSparseHensel.h"
 

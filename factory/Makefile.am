@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS = -I ../m4
 
-SUBDIRS=include/factory libfac
+SUBDIRS=include/factory
 
 AM_CPPFLAGS = -I${builddir}/include -I${srcdir}/include -I${srcdir} \
 $(OMALLOC_INCLUDES) $(RESOURCES_INCLUDES) \
@@ -8,24 +8,25 @@ $(FLINT_CFLAGS) $(NTL_CFLAGS) $(GMP_CFLAGS)
 
 lib_LTLIBRARIES = libfactory.la
 
-libfactory_la_LIBADD     = ${builddir}/libfac/libfac.la \
-$(RESOURCES_LIBS) $(OMALLOC_LIBS) \
+libfactory_la_LIBADD     =$(RESOURCES_LIBS) $(OMALLOC_LIBS) \
 $(FLINT_LIBS) $(NTL_LIBS) $(GMP_LIBS)
 
 libfactory_la_LDFLAGS    = -release ${PACKAGE_VERSION}
 
 # factory source files
 SOURCES = \
-		algext.cc \
 		canonicalform.cc \
 		cf_algorithm.cc \
 		cf_char.cc \
+		cfCharSets.cc \
+		cfCharSetsUtil.cc \
 		cf_chinese.cc \
 		cf_cyclo.cc \
 		cf_eval.cc \
 		cf_factor.cc \
 		cf_factory.cc \
 		cf_gcd.cc \
+		cfGcdAlgExt.cc \
 		cf_gcd_smallp.cc \
 		cf_generator.cc \
 		cf_globals.cc \
@@ -52,6 +53,8 @@ SOURCES = \
 		facAbsBiFact.cc \
 		facAbsFact.cc \
 		facAlgExt.cc \
+		facAlgFunc.cc \
+		facAlgFuncUtil.cc \
 		facBivar.cc \
 		fac_ezgcd.cc \
 		facFactorize.cc \
@@ -96,12 +99,15 @@ factory_headers = \
 		cf_assert.h \
 		canonicalform.h \
 		cf_algorithm.h \
+		cfCharSets.h \
+		cfCharSetsUtil.h \
 		cf_cyclo.h \
 		cf_defs.h \
 		cf_eval.h \
 		cf_factory.h \
 		cf_generator.h \
 		cf_globals.h \
+		cfGcdAlgExt.h \
 		cf_gcd_smallp.h \
 		cf_hnf.h \
 		cf_irred.h \
@@ -122,6 +128,8 @@ factory_headers = \
 		facAbsBiFact.h \
 		facAbsFact.h \
 		facAlgExt.h \
+		facAlgFunc.h \
+		facAlgFuncUtil.h \
 		facBivar.h \
 		facFactorize.h \
 		fac_sqrfree.h \
@@ -149,7 +157,6 @@ factory_headers = \
 		timing.h \
 		variable.h \
 		NTLconvert.h \
-		algext.h \
 		singext.h \
 		parseutil.h
 

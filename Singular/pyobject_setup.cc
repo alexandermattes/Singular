@@ -12,18 +12,10 @@
 **/
 //*****************************************************************************
 
-
-
-
-
 #include <kernel/mod2.h>
-#include <kernel/febase.h>
+
 #include <Singular/blackbox.h>
 #include <Singular/ipshell.h>
-
-//#ifdef EMBED_PYTHON
-//#include "pyobject.cc"
-//#endif
 
 static BOOLEAN pyobject_load()
 {
@@ -53,7 +45,8 @@ void pyobject_setup()
 }
 
 /// Explicitely load, if not loaded already
-BOOLEAN pyobject_ensure() {
+BOOLEAN pyobject_ensure() 
+{
 
   int tok = -1;
   blackbox* bbx = (blackboxIsCmd("pyobject", tok) == ROOT_DECL?
@@ -61,6 +54,3 @@ BOOLEAN pyobject_ensure() {
   if (bbx == NULL) return TRUE;
   return (bbx->blackbox_Init == pyobject_autoload?  pyobject_load(): FALSE);
 }
-
-
-

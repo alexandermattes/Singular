@@ -425,18 +425,35 @@ number nrMapQ(number from, const coeffs aRing, const coeffs r)
 */
 #define SR_HDL(A) ((long)(A))
 #define IS_INT(A) ((A)->s==3)
-#define IS_IMM(A) (SR_HDL(A)&SR_INT)
+#define IS_IMM(A) (SR_HDL(A) & SR_INT)
 #define GET_NOM(A) ((A)->z)
 #define GET_DENOM(A) ((A)->n)
 
   assume( getCoeffType(r) == ID );
   assume( getCoeffType(aRing) == n_Q );
 
+  mpz_ptr z;
+  mpz_ptr zz=NULL;
+  #if SIZEOF_LONG == 8
   if (IS_IMM(from))
-    return nf((float)nlInt(from,NULL /* dummy for nlInt*/)).N();
+  {
+    int ui=SR_TO_INT(from);
+     if ((long)ui==SR_TO_INT(from))
+       return nf((float)ui).N();
+     zz=(mpz_ptr)omAlloc(sizeof(mpz_t));
+     mpz_init_set_si(zz,SR_TO_INT(from));
+     z=zz;
+  }
+  #else
+  if (IS_IMM(from))
+    return nf((float)nlInt(from,aRing)).N();
+  #endif
+  else
+  {
+    /* read out the enumerator */
+    z=GET_NOM(from);
+  }
 
-  /* read out the enumerator */
-  mpz_ptr z=GET_NOM(from);
   int i = mpz_size1(z);
   mpf_t e;
   mpf_init(e);
@@ -444,8 +461,15 @@ number nrMapQ(number from, const coeffs aRing, const coeffs r)
   int sign= mpf_sgn(e);
   mpf_abs (e, e);
 
+  #if SIZEOF_LONG == 8
+  if (zz!=NULL)
+  {
+    mpz_clear(zz);
+    omFreeSize(zz,sizeof(mpz_t));
+  }
+  #endif
   /* if number was an integer, we are done*/
-  if(IS_INT(from))
+  if(IS_IMM(from)|| IS_INT(from))
   {
     if(i>4)
     {
@@ -652,7 +676,7 @@ BOOLEAN nrInitChar(coeffs n, void* p)
   n->cfMult  = nrMult;
   n->cfDiv   = nrDiv;
   n->cfExactDiv= nrDiv;
-  n->cfNeg   = nrNeg;
+  n->cfInpNeg   = nrNeg;
   n->cfInvers= nrInvers;
   n->cfCopy  = ndCopy;
   n->cfGreater = nrGreater;

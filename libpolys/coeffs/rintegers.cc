@@ -21,6 +21,7 @@
 #include <coeffs/longrat.h>
 #include <coeffs/mpr_complex.h>
 #include <coeffs/rintegers.h>
+#include <coeffs/rmodulon.h>
 #include "si_gmp.h"
 
 /// Our Type!
@@ -873,8 +874,10 @@ number nrzMapZp(number from, const coeffs /*src*/, const coeffs /*dst*/)
   return nrz_short((number) erg);
 }
 
-number nrzMapQ(number from, const coeffs src, const coeffs /*dst*/)
+number nrzMapQ(number from, const coeffs src, const coeffs dst)
 {
+  if (src==dst) /* will happen if bigint_coeffs is rintegers */
+    return nrzCopy(from, src);
   int_number erg = (int_number) omAllocBin(gmp_nrz_bin);
   mpz_init(erg);
   nlGMP(from, (number) erg, src);
@@ -1043,6 +1046,19 @@ static void nrzMPZ(mpz_t res, number &a, const coeffs)
     mpz_init_set(res, (int_number) a);
 }
 
+coeffs nrzQuot1(number c, const coeffs r)
+{
+    int ch = r->cfInt(c, r);
+    int_number dummy;
+    dummy = (int_number) omAlloc(sizeof(mpz_t));
+    mpz_init_set_ui(dummy, ch);
+    ZnmInfo info;
+    info.base = dummy;
+    info.exp = (unsigned long) 1;
+    coeffs rr = nInitChar(n_Zn, (void*)&info);
+    return(rr);
+}
+
 BOOLEAN nrzInitChar(coeffs r,  void *)
 {
   assume( getCoeffType(r) == ID );
@@ -1070,7 +1086,7 @@ BOOLEAN nrzInitChar(coeffs r,  void *)
   r->cfDivBy = nrzDivBy; // only for ring stuff
   r->cfInit_bigint = nrzMapQ;
   //#endif
-  r->cfNeg   = nrzNeg;
+  r->cfInpNeg   = nrzNeg;
   r->cfInvers= nrzInvers;
   r->cfCopy  = nrzCopy;
   r->cfWriteLong = nrzWrite;
@@ -1092,6 +1108,7 @@ BOOLEAN nrzInitChar(coeffs r,  void *)
   r->cfMPZ = nrzMPZ;
   r->cfFarey = nrzFarey;
 
+  r->cfQuot1 = nrzQuot1;
   // debug stuff
 
 #ifdef LDEBUG

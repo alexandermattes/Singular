@@ -903,6 +903,7 @@ bool bigintmat::skalmult(number b, coeffs c)
     return false;
   }
   number t1, t2;
+  if ( n_IsOne(b,c)) return true;
   for (int i=1; i<=row; i++)
   {
     for (int j=1; j<=col; j++)
@@ -1328,7 +1329,7 @@ number bigintmat::pseudoinv(bigintmat *a) {
     for (int j=i+1; j<=col; j++) {
       temp = m->get(row+i, j);
       m->colskalmult(j, diag, basecoeffs());
-      temp = n_Neg(temp, basecoeffs());
+      temp = n_InpNeg(temp, basecoeffs());
       m->addcol(j, i, temp, basecoeffs());
       n_Delete(&temp, basecoeffs());
     }
@@ -1520,13 +1521,13 @@ void bigintmat::howell()
         gcd = n_XExtGcd(view(k, last_zero_col), view(k, j), &co1, &co2, &co3, &co4, R);
         if (n_Equal(gcd, view(k, j), R)) {
           number q = n_Div(view(k, last_zero_col), gcd, R);
-          q = n_Neg(q, R);
+          q = n_InpNeg(q, R);
           addcol(last_zero_col, j, q, R);
           n_Delete(&q, R);
         } else if (n_Equal(gcd, view(k, last_zero_col), R)) {
           swap(last_zero_col, k);
           number q = n_Div(view(k, last_zero_col), gcd, R);
-          q = n_Neg(q, R);
+          q = n_InpNeg(q, R);
           addcol(last_zero_col, j, q, R);
           n_Delete(&q, R);
         } else {
@@ -1598,7 +1599,7 @@ void bigintmat::hnf()
               swap(l, l+1);
               n_Delete(&q, basecoeffs());
               q = n_Div(tmp2, ggt, basecoeffs());
-              q = n_Neg(q, basecoeffs());
+              q = n_InpNeg(q, basecoeffs());
               // Dann addiere das -q-fache der (neuen) rechten Spalte zur linken dazu. Damit erhalten wir die gewünschte 0
 
               addcol(l, l+1, q, basecoeffs());
@@ -1609,7 +1610,7 @@ void bigintmat::hnf()
               // Die Berechnung von q (=y/ggt) entfällt, da ggt=1
               swap(l, l+1);
               colskalmult(l+1, minusone, basecoeffs());
-              tmp2 = n_Neg(tmp2, basecoeffs());
+              tmp2 = n_InpNeg(tmp2, basecoeffs());
               addcol(l, l+1, tmp2, basecoeffs());
             }
             else {
@@ -1656,7 +1657,7 @@ void bigintmat::hnf()
       for (int l=j+1; l<=col; l++) {
         n_Delete(&q, basecoeffs());
         q = n_QuotRem(view(i, l), view(i, j), NULL, basecoeffs());
-        q = n_Neg(q, basecoeffs());
+        q = n_InpNeg(q, basecoeffs());
         addcol(l, j, q, basecoeffs());
       }
       i--;
@@ -1713,7 +1714,6 @@ bigintmat * bigintmat::modhnf(number p, coeffs R)
   bigintmat *a = bimChangeCoeff(m, R); 
   delete m;
   bigintmat *C = new bigintmat(rows(), rows(), R);
-  a->Print();
   int piv = rows(), i = a->cols();
   while (piv) {
     if (!i || n_IsZero(a->view(piv, i), R)) {
@@ -1724,7 +1724,6 @@ bigintmat * bigintmat::modhnf(number p, coeffs R)
     }
     piv--;
   }
-  C->Print();
   delete a;
   return C;
 }

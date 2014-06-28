@@ -17,7 +17,7 @@
 #include "cf_factory.h"
 #include "fac_util.h"
 #include "templates/ftmpl_functions.h"
-#include "algext.h"
+#include "cfGcdAlgExt.h"
 #include "cf_gcd_smallp.h"
 #include "cf_map_ext.h"
 #include "cf_util.h"
@@ -957,6 +957,7 @@ content ( const CanonicalForm & f )
 CanonicalForm
 content ( const CanonicalForm & f, const Variable & x )
 {
+    if (f.inBaseDomain()) return f;
     ASSERT( x.level() > 0, "cannot calculate content with respect to algebraic variable" );
     Variable y = f.mvar();
 

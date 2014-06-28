@@ -24,7 +24,7 @@
 #include "timing.h"
 
 #include "canonicalform.h"
-#include "algext.h"
+#include "cfGcdAlgExt.h"
 #include "cf_map.h"
 #include "cf_util.h"
 #include "templates/ftmpl_functions.h"
@@ -358,8 +358,8 @@ CanonicalForm uni_lcoeff (const CanonicalForm& F)
 /// the polynomial interpolating in all the points.
 /// newtonPoly must be equal to (x - alpha_1) * ... * (x - alpha_{n-1})
 static inline CanonicalForm
-newtonInterp(const CanonicalForm alpha, const CanonicalForm u,
-             const CanonicalForm newtonPoly, const CanonicalForm oldInterPoly,
+newtonInterp(const CanonicalForm & alpha, const CanonicalForm & u,
+             const CanonicalForm & newtonPoly, const CanonicalForm & oldInterPoly,
              const Variable & x)
 {
   CanonicalForm interPoly;

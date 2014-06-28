@@ -9,7 +9,7 @@ Minor.cc MinorInterface.cc MinorProcessor.cc \
 linearAlgebra.cc eigenval.cc interpolation.cc minpoly.cc
 
 
-liblinear_algebra_la_includedir=$(includedir)/kernel/linear_algebra
+liblinear_algebra_la_includedir=$(includedir)/singular/kernel/linear_algebra
 liblinear_algebra_la_include_HEADERS= \
   Minor.h MinorInterface.h MinorProcessor.h \
   linearAlgebra.h eigenval.h interpolation.h minpoly.h \
@@ -17,3 +17,12 @@ liblinear_algebra_la_include_HEADERS= \
 
 
 
+TESTS_ENVIRONMENT = SINGULARPATH='${abs_top_builddir}/libpolys/polys/.libs:${abs_top_builddir}/factory/gftables'
+TESTS_ENVIRONMENT += SINGULAR_ROOT_DIR='${abs_top_builddir}'
+
+TESTS = test
+check_PROGRAMS = $(TESTS)
+test_SOURCES = test.cc
+test_LDADD   = liblinear_algebra.la ${builddir}/../libkernelCommon.la 
+
+CLEANFILES = $(TESTS)

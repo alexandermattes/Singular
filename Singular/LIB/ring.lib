@@ -3,6 +3,7 @@ version="version ring.lib 4.0.0.0 Jun_2013 "; // $Id$
 category="General purpose";
 info="
 LIBRARY:  ring.lib      Manipulating Rings and Maps
+AUTHORS: Singular team
 
 PROCEDURES:
  changechar(c[,r]); make a copy of basering [ring r] with new char c
@@ -22,10 +23,13 @@ PROCEDURES:
  rootofUnity(n);          the minimal polynomial for the n-th primitive root of unity
              (parameters in square brackets [] are optional)
  optionIsSet(opt)         check if as a string given option is set or not.
- hasRingCoefficientRing   check if the coefficient ring is not a field
+ hasFieldCoefficient      check if the coefficient ring is considered a field
  hasNumericCoeffs(rng)    check for use of floating point numbers
  hasCommutativeVars(rng)  non-commutive or commnuative polynomial ring
  hasGlobalOrdering(rng)   global versus mixed/local monomial ordering
+ hasMixedOrdering()       mixed versus global/local ordering
+ hasFieldCoefficient(rng) coefficients are a field
+ isQuotientRing(rng)      ring is a qotient ring
  isSubModule(I,J)         check if I is in J as submodule
 ";
 
@@ -941,23 +945,23 @@ static proc testIsQuotientRing()
    ASSUME(0, isQuotientRing(qrng3) ) ;
 }
 
-proc hasRingCoefficientRing( rng )
-"USAGE: hasRingCoefficientRing ( rng );
-RETURN:  1 if rng is has ring coefficients, 0 otherwise.
+proc hasFieldCoefficient( rng )
+"USAGE: hasFieldCoefficient ( rng );
+RETURN:  1 if the coeffcients form a field, 0 otherwise.
 KEYWORDS: ring coefficients
-EXAMPLE: example hasRingCoefficientRing; shows an example
+EXAMPLE: example hasFieldCoefficient; shows an example
 "
 {
-  return (attrib(rng,"ring_cf")==1);
+  return (attrib(rng,"ring_cf")==0);
 }
 example
 {
   ring rng = integer,x,dp;
-  hasRingCoefficientRing(rng); //yes
+  hasFieldCoefficient(rng); //no
   // if a certain method supports only rings with integer coefficients,
   // then a parameter test could be performed:
   ring rng2 = 0, x, dp;
-  hasRingCoefficientRing(rng2);  // no
+  hasFieldCoefficient(rng2);  // yes
 }
 
 proc hasGlobalOrdering (rng)
@@ -987,6 +991,11 @@ EXAMPLE: example hasCommutativeVars; shows an example
   list rl=ringlist(rng);
   return (size(rl)==4);
 }
+example
+{
+ ring r=0,(x,y,z),dp;
+ hasCommutativeVars(r);
+}
 
 proc hasNumericCoeffs(rng)
 "USAGE: hasNumericCoeffs ( rng );
@@ -1008,5 +1017,43 @@ EXAMPLE: isSubModule; shows an example
   else
   { return(size(reduce(I,groebner(J),1)==0)); }
 }
+example
+{
+  ring r=0,x,dp;
+  ideal I1=x2;
+  ideal I2=x3;
+  isSubModule(I1,I2);
+  isSubModule(I2,I1);
+}
 
+proc hasMixedOrdering()
+"USAGE:  hasMixedOrdering();
+RETURN:  1 if ordering of basering is mixed, 0 else
+EXAMPLE: example hasMixedOrdering(); shows an example
+"
+{
+   int i,p,m;
+   for(i = 1; i <= nvars(basering); i++)
+   {
+      if(var(i) > 1)
+      {
+         p++;
+      }
+      else
+      {
+         m++;
+      }
+   }
+   if((p > 0) && (m > 0)) { return(1); }
+   return(0);
+}
+example
+{ "EXAMPLE:"; echo = 2;
+   ring R1 = 0,(x,y,z),dp;
+   hasMixedOrdering();
+   ring R2 = 31,(x(1..4),y(1..3)),(ds(4),lp(3));
+   hasMixedOrdering();
+   ring R3 = 181,x(1..9),(dp(5),lp(4));
+   hasMixedOrdering();
+}
 
