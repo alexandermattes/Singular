@@ -4,7 +4,7 @@
 #include "libpolys/coeffs/numbers.h" 
 #include "libpolys/coeffs/coeffs.h"
 #include "Singular/ipid.h"
-#include "kernel/febase.h"
+#include"reporter/reporter.h"  // for Print, WerrorS
 #include "lattice.h"
 #include <iostream>
 #include <math.h> 
@@ -144,7 +144,7 @@ void test_LLL() {
         reduced->Print();
         assume(bimSub(reduced,bimMult(vec[i],H))->isZero());
         number H_det = H->det();
-        assume(n_IsOne(H_det,coef) || n_IsOne(n_Neg(H_det,coef),coef));
+        assume(n_IsOne(H_det,coef) || n_IsOne(n_InpNeg(H_det,coef),coef));
 
 //         bigintmat * gram_matrix = l->get_gram_matrix();
 //         lattice * l_gram = new lattice(vec[i],true);

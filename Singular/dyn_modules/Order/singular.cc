@@ -1,5 +1,5 @@
 #include "kernel/mod2.h" // general settings/macros
-#include"kernel/febase.h"  // for Print, WerrorS
+#include"reporter/reporter.h"  // for Print, WerrorS
 #include"Singular/ipid.h" // for SModulFunctions, leftv
 #include"Singular/number2.h" // for SModulFunctions, leftv
 #include"libpolys/coeffs/numbers.h" // nRegister, coeffs.h
@@ -184,7 +184,9 @@ static BOOLEAN nforder_ideal_Op2(int op,leftv l, leftv r1, leftv r2)
         break;
       }
     default:
-      return WrongOp("not implemented yet", op, r1);
+//       return WrongOp("not implemented yet", op, r1);
+      WerrorS("not implemented yet");
+      return FALSE;
   }
   l->rtyp = nforder_type_id;
   l->data = (void*)H;
@@ -450,7 +452,6 @@ static BOOLEAN tempTest(leftv result, leftv arg)
   result->data = (void*) temp_test(a);
   return FALSE;
 }
-
 
 extern "C" int mod_init(SModulFunctions* psModulFunctions)
 {

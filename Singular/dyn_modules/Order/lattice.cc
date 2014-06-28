@@ -1,6 +1,6 @@
 #include <libpolys/coeffs/bigintmat.h>
 #include "lattice.h"
-#include "kernel/febase.h"  // for Print, WerrorS
+#include"reporter/reporter.h"  // for Print, WerrorS
 #include "libpolys/coeffs/numbers.h" 
 #include "libpolys/coeffs/coeffs.h"
 #include "Singular/ipid.h"
