@@ -453,6 +453,26 @@ static BOOLEAN tempTest(leftv result, leftv arg)
   return FALSE;
 }
 
+static BOOLEAN LLL(leftv result, leftv arg)
+{ 
+  if( (arg == NULL) 
+    ||(arg->Typ() != BIGINTMAT_CMD)) 
+  {
+    WerrorS("usage: LLL(bigintmat)");
+  }
+  bigintmat * a = (bigintmat *) arg->Data();
+  
+  lattice * l = new lattice(a);
+  number c = NULL;
+  l->LLL(c,false,true,true);
+  bigintmat * reduced = l->get_reduced_basis();
+  delete l;
+  result->rtyp = BIGINTMAT_CMD;
+  result->data = (void*) reduced;
+  return FALSE;
+}
+
+
 extern "C" int mod_init(SModulFunctions* psModulFunctions)
 {
   nforder_Register();

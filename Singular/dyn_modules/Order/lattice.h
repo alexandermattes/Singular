@@ -69,11 +69,11 @@ class lattice {
         //testing element for enumeration
         bigintmat * x;
         
-        //bond for x_i in enumeration
+        //array bound for x_i in enumeration
         number * bound;
         
         //coef for output
-        coeffs out_coef;
+        coeffs fieldcoef;
         
 //         int precision;
     
@@ -82,6 +82,10 @@ class lattice {
         
         //read from gram_matrix_content
         inline number gram_matrix_view(int i,int j);
+        
+        inline void delete_LLL_computations();
+        
+        inline void DEBUG_LLL();
         
         //for LLL, see Cohen 2.6.3
         inline void RED(int k, int l);
@@ -147,6 +151,8 @@ class lattice {
         
         bigintmat * get_gram_matrix();
          
+        bigintmat * get_lattice_element(bigintmat * x);
+        
         bigintmat * enumerate_all(number a);
         
         bigintmat * enumerate_next(number a, bigintmat * x);

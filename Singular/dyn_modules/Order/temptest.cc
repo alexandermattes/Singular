@@ -19,12 +19,13 @@ using namespace std;
 number temp_test(number a) {    
     number c = nCopy(a);
     
-    PrintS("\n\n\n");
-    test_Enumerate();
-    PrintS("\n\n\n");
-    test_Minkowski();
-    PrintS("\n\n\n");
+//     PrintS("\n\n\n");
+//     test_Enumerate();
+//     PrintS("\n\n\n");
+//     test_Minkowski();
+//     PrintS("\n\n\n");
     test_LLL();
+
     
     return c;    
 }
@@ -37,27 +38,27 @@ void test_LLL() {
     //Vector containing test matrices
     std::vector<bigintmat*> vec;
     
-    {
-        int ar[] = {1,-1,3,1,0,5,1,2,6};
-        int n = 3;
-        int m = 3;
-        bigintmat * temp = new bigintmat(n,m,coef);
-        for(int i=0; i<(n*m); i++) {
-            temp->set(i,n_Init(ar[i],coef), coef);
-        }
-        vec.push_back(temp);
-    }
+//     {
+//         int ar[] = {1,-1,3,1,0,5,1,2,6};
+//         int n = 3;
+//         int m = 3;
+//         bigintmat * temp = new bigintmat(n,m,coef);
+//         for(int i=0; i<(n*m); i++) {
+//             temp->set(i,n_Init(ar[i],coef), coef);
+//         }
+//         vec.push_back(temp);
+//     }
     
-    {
-        int ar[] = {1,9,1,2,1,8,8,3,7,4,5,1,2,6,7,1};
-        int n = 4;
-        int m = 4;
-        bigintmat * temp = new bigintmat(n,m,coef);
-        for(int i=0; i<(n*m); i++) {
-            temp->set(i,n_Init(ar[i],coef), coef);
-        }
-        vec.push_back(temp);
-    }
+//     {
+//         int ar[] = {1,9,1,2,1,8,8,3,7,4,5,1,2,6,7,1};
+//         int n = 4;
+//         int m = 4;
+//         bigintmat * temp = new bigintmat(n,m,coef);
+//         for(int i=0; i<(n*m); i++) {
+//             temp->set(i,n_Init(ar[i],coef), coef);
+//         }
+//         vec.push_back(temp);
+//     }
     
 //     {
 //         int ar[] = {0};
@@ -81,77 +82,122 @@ void test_LLL() {
 //         vec.push_back(temp);
 //     }
         
-    {
-        int ar[] = {1,-1,3,1,0,5,1,2,6};
-        int n = 3;
-        int m = 3;
-        bigintmat * temp = new bigintmat(n,m,coef);
-        for(int i=0; i<(n*m); i++) {
-            temp->set(i,n_Init(ar[i],coef), coef);
-        }
-        vec.push_back(temp);
-    }
-    
-    {
-        int ar[] = {1,2,3,31,41,51,101,201,301};
-        int n = 3;
-        int m = 3;
-        bigintmat * temp = new bigintmat(n,m,coef);
-        for(int i=0; i<(n*m); i++) {
-            temp->set(i,n_Init(ar[i],coef), coef);
-        }
-        vec.push_back(temp);
-    }
-    
-    {
-        int ar[] = {10000,4545545,4557454,465445241};
-        int n = 2;
-        int m = 2;
-        bigintmat * temp = new bigintmat(n,m,coef);
-        for(int i=0; i<(n*m); i++) {
-            temp->set(i,n_Init(ar[i],coef), coef);
-        }
-        vec.push_back(temp);
-    }
-
-//     //Random matrices
-//     srand(1234);
-//     for(int t = 0; t < 100; t++) {
-//         int matrix_size = rand() % 10 + 1;
-//         bigintmat * matrix = new bigintmat(matrix_size,matrix_size,coef);
-//         matrix->one();
-//         for(int ops = 0; ops < matrix_size*5; ops++) {
-//             matrix->addcol(rand() % matrix_size + 1
-//                           ,rand() % matrix_size + 1
-//                           ,n_Init(rand() % 5 + 1,coef),coef);
+//     {
+//         int ar[] = {1,-1,3,1,0,5,1,2,6};
+//         int n = 3;
+//         int m = 3;
+//         bigintmat * temp = new bigintmat(n,m,coef);
+//         for(int i=0; i<(n*m); i++) {
+//             temp->set(i,n_Init(ar[i],coef), coef);
 //         }
-//         vec.push_back(matrix);
+//         vec.push_back(temp);
 //     }
+    
+//     {
+//         int ar[] = {1,2,3,31,41,51,101,201,301};
+//         int n = 3;
+//         int m = 3;
+//         bigintmat * temp = new bigintmat(n,m,coef);
+//         for(int i=0; i<(n*m); i++) {
+//             temp->set(i,n_Init(ar[i],coef), coef);
+//         }
+//         vec.push_back(temp);
+//     }
+    
+//     {
+//         int ar[] = {10000,4545545,4557454,465445241};
+//         int n = 2;
+//         int m = 2;
+//         bigintmat * temp = new bigintmat(n,m,coef);
+//         for(int i=0; i<(n*m); i++) {
+//             temp->set(i,n_Init(ar[i],coef), coef);
+//         }
+//         vec.push_back(temp);
+//     }
+
+    //Random matrices
+    srand(1234);
+    for(int t = 0; t < 10; t++) {
+        int matrix_size = rand() % 10 + 1;
+        bigintmat * matrix = new bigintmat(matrix_size,matrix_size,coef);
+        matrix->one();
+        for(int ops = 0; ops < matrix_size*5; ops++) {
+            matrix->addcol(rand() % matrix_size + 1
+                          ,rand() % matrix_size + 1
+                          ,n_Init(rand() % 5 + 1,coef),coef);
+        }
+        vec.push_back(matrix);
+    }
     
     
     for(unsigned i= 0; i<vec.size(); i++) {
-        PrintS("\nInput:\n");
-// // //         cout << orthogonality_defect(vec[i]) << '\n';
+        cout << "\nMatrix #" << i;
+        PrintS("\nInputmatrix:\n");
         vec[i]->Print();
         PrintS("\n");
+        
         lattice * l = new lattice(vec[i]);
         number c = NULL;
-        l->LLL(c,true,false,false);
+         //LLL(c,trans_matrix,integral,independentVectors);
+        l->LLL(c,true,true,true);
         bigintmat * reduced = l->get_reduced_basis();
         bigintmat * H = l->get_transformation_matrix();
+        
         PrintS("Output:\n");
-//         cout << orthogonality_defect(reduced) << '\n';
         reduced->Print();
-        assume(bimSub(reduced,bimMult(vec[i],H))->isZero());
-        number H_det = H->det();
-        assume(n_IsOne(H_det,coef) || n_IsOne(n_InpNeg(H_det,coef),coef));
+        PrintS("\n");
+        
+        bigintmat * input_times_H = bimMult(vec[i],H);
+        bool transformation_is_correct = bimSub(reduced,input_times_H)->isZero();
+        
+        assume(transformation_is_correct);
+        if(transformation_is_correct) {
+            PrintS("transformation is correct\n");
+        } else {
+            PrintS("transformation is NOT correct:\n");
+            PrintS("H =\n");
+            H->Print();
+            PrintS("\ninput_times_H =\n");
+            input_times_H->Print();
+            PrintS("\n");
+            getchar();
+        }
+        
+//         number H_det = H->det();
+//         bool H_is_regular = n_IsOne(H_det,coef) || n_IsOne(n_Neg(H_det,coef),coef);
+//         
+//         assume(H_is_regular);
+//         if(H_is_regular) {
+//             PrintS("H is regular\n");
+//         } else {
+//             PrintS("H is not regular:\n");
+//             PrintS("H =\n");
+//             H->Print();
+//             PrintS("\n");
+//             getchar();
+//         }
 
 //         bigintmat * gram_matrix = l->get_gram_matrix();
 //         lattice * l_gram = new lattice(vec[i],true);
 //         l_gram->LLL(c,true,false,true);
 //         bigintmat * H_gram = l_gram->get_transformation_matrix();
-//         assume(bimSub(H_gram,H)->isZero());
+//         PrintS("H_gram :\n");
+//         H_gram->Print();
+//         PrintS("\n");
+// //         assume(bimSub(H_gram,H)->isZero());
+
+        delete reduced;
+        delete H;
+        delete input_times_H;
+        delete l;
     }
+    
+    
+    
+    for(unsigned i= 0; i<vec.size(); i++) {
+        delete vec[i];
+    }
+    
     PrintS("\n");
 }
 

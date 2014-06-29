@@ -17,7 +17,7 @@
 //         Debugging Stuff          ///
 ///////////////////////////////////////
 
-// #define DEBUG_PRINTS 1 //remove this line to disable debugging
+#define DEBUG_PRINTS 1 //remove this line to disable debugging
 #ifdef DEBUG_PRINTS
 
   //DEBUG_BLOCK(true / false); to enable/disable debugging in this block
@@ -48,9 +48,9 @@ lattice::lattice(bigintmat* inputmatrix, bool use_as_gram_matrix){
     DEBUG_BLOCK(true);
     DEBUG_PRINT(("Creating new lattice\n"));
     
-    out_coef = inputmatrix->basecoeffs();
-//     DEBUG_PRINT(("always set coef = out_coef"));
-    coef = out_coef;
+    fieldcoef = inputmatrix->basecoeffs();
+//     DEBUG_PRINT(("always set coef = fieldcoef"));
+    coef = fieldcoef;
             
     //NOTE: Add transformation from rings to fields here
         //         exact <-> rounded
@@ -103,22 +103,23 @@ lattice::lattice(bigintmat* inputmatrix, bool use_as_gram_matrix){
         gram_matrix_content = NULL;
     }
     
-    c = NULL;
-    B = NULL;
-    b = NULL;
+    c      = NULL;
+    B      = NULL;
+    b      = NULL;
     b_star = NULL;
-    H = NULL;
-    my = NULL;
-    Q = NULL;
-    d = NULL;
+    H      = NULL;
+    my     = NULL;
+    Q      = NULL;
+    d      = NULL;
     lambda = NULL;
-    rank = -1;
+    rank   = -1;
+    
     independentVectors = true; 
-    integral = true;
-    trans_matrix = true;
+    integral           = true;
+    trans_matrix       = true;
     
     //for enumeration
-    x = NULL;
+    x     = NULL;
     bound = NULL;
     
     DEBUG_PRINT(("Done\n"));
@@ -133,34 +134,33 @@ lattice::~lattice() {
             delete basis[i];
         }
         delete[] basis;
+        basis = NULL;
     }
     
-    if(b != NULL) {
-        for(int i=0; i<=n; i++) {
-            delete b[i];
-        }
-        delete[] b;
+    if(gram_matrix_content != NULL) {
+        for(int i = 0; i < n; i++) {
+            delete[] gram_matrix_content[i];
+        } 
+        delete[] gram_matrix_content;
+        gram_matrix_content = NULL;
     }
     
-    if(b_star != NULL) {
-        for(int i=0; i<=n; i++) {
-            delete b_star[i];
-        }
-        delete[] b_star;
-    }
-    
-    delete H;
-    
-    delete my;
-    
-    delete[] B;
-    
-    n_Delete(&c,coef);
+    delete_LLL_computations();
     
     delete Q;
-        
-    //NOTE: add other member variables later
+    Q = NULL;
     
+    delete x;
+    x = NULL;
+    
+    if(bound != NULL) {
+        for(int i=0; i<=n; i++) {
+            n_Delete(&bound[i],fieldcoef);
+        }
+        delete[] bound;
+        bound = NULL;
+    }
+        
     DEBUG_PRINT(("Done\n"));
 }
 
@@ -168,6 +168,106 @@ lattice::~lattice() {
 ///////////////////////////////////////
 //               LLL                ///
 ///////////////////////////////////////
+
+void lattice::delete_LLL_computations(){
+    n_Delete(&c,coef);
+    
+    if(b != NULL) {
+        for(int i=0; i<=n; i++) {
+            delete b[i];
+        }
+        delete[] b;
+        b = NULL;
+    }
+    
+    if(b_star != NULL) {
+        for(int i=0; i<=n; i++) {
+            delete b_star[i];
+        }
+        delete[] b_star;
+        b_star = NULL;
+    }
+    
+    if(B != NULL) {
+        for(int i=0; i<=n; i++) {
+            n_Delete(&B[i],coef);
+        }
+        delete[] B;
+        B = NULL;
+    }
+    
+    delete H;
+    H = NULL;
+    
+    delete my;
+    my = NULL;
+     
+    if(d != NULL) {
+        for(int i=0; i<=n; i++) {
+            n_Delete(&d[i],coef);
+        }
+        delete[] d;
+        d = NULL;
+    }
+    
+    delete lambda;
+    lambda = NULL; 
+}
+
+void lattice::DEBUG_LLL(){
+    DEBUG_BLOCK(true);
+    
+    if(b != NULL) {
+        for(int i=1; i<=n;i++){
+            if(b[i] != NULL) {
+                std::cout<<"b["<<i<<"]: ";
+                b[i]->Print();
+                Print("\n");
+            }
+        }
+    }
+    
+    if(b_star != NULL) {
+        for(int i=1; i<=n;i++){
+            if(b_star[i] != NULL) {
+                std::cout<<"b_star["<<i<<"]: ";
+                b_star[i]->Print();
+                Print("\n");
+            }
+        }
+    }
+    
+    if(B != NULL) {
+        for(int i=1; i<=n;i++){
+            if(B[i] != NULL) {
+                std::cout<<"B["<<i<<"]: ";
+                n_Print(B[i],coef);
+                Print("\n");
+            }
+        }  
+    }
+    
+    if(d != NULL) {
+        for(int i=1; i<=n;i++){
+            if(d[i] != NULL) {
+                std::cout<<"d["<<i<<"]: ";
+                n_Print(d[i],coef);
+                Print("\n");
+            }
+        }  
+    }
+    
+    if(my != NULL)
+        DEBUG_BIM(my);
+    
+    if(lambda != NULL)
+        DEBUG_BIM(lambda);
+    
+    if(H != NULL)
+        DEBUG_BIM(H);
+    
+//     getchar();
+}
 
 bool lattice::LLL(){
     // c = 3/4
@@ -184,106 +284,81 @@ bool lattice::LLL(){
 }
 
 
-bool lattice::LLL(number& c, bool trans_matrix, bool integral, bool independentVectors){    
+bool lattice::LLL(number& c, bool trans_matrix, bool integral, bool independentVectors){
     DEBUG_PRINT(("Start LLL\n"));  
     
+    DEBUG_PRINT(("Delete old results\n"));
+    delete_LLL_computations();
+    
     if(c==NULL) {
+        DEBUG_PRINT(("c==NULL => set c=3/4\n"));  
         number three = n_Init(3, coef);
         number four  = n_Init(4, coef);
         number default_c = n_Div(three,four,coef);
         n_Delete(&three,coef);
         n_Delete(&four,coef);
-        c = default_c;
+        this->c = default_c;
+    } else {
+        this->c = n_Copy(c,coef);
     }
-    
-    this->trans_matrix = trans_matrix;
-    this->integral = integral;
+     
+    this->trans_matrix       = trans_matrix;
+    this->integral           = integral;
     this->independentVectors = independentVectors;
-    
-    DEBUG_PRINT(("Delete old Results\n"));
-    
+      
+    DEBUG_PRINT(("Create new arrays and matrices\n"));
     if(!only_gram_matrix_given){
-        if(b == NULL) {
-            b = new bigintmat*[n+1]; //b[0] is not used
-            b[0] = NULL;
-            for(int j=1; j<=n; j++) {
-                b[j] = bimCopy(basis[j]);
-            }
-        } else {
-            b[0] = NULL;
-            for(int j=1; j<=n; j++) {
-                delete b[j];
-                b[j] = bimCopy(basis[j]);
-            }
+        b = new bigintmat*[n+1]; //b[0] is not used
+        b[0] = NULL;
+        for(int j=1; j<=n; j++) {
+            b[j] = bimCopy(basis[j]);
         }
         
-        if(b_star == NULL) {
-            b_star = new bigintmat*[n+1]; //b_star[0] is not used
-            for(int j=0; j<=n; j++) {
-                b_star[j] = NULL;
-            }
-        } else {
-            for(int j=0; j<=n; j++) {
-                delete b_star[j];
-                b_star[j] = NULL;
-            }
+        b_star = new bigintmat*[n+1]; //b_star[0] is not used
+        for(int j=0; j<=n; j++) {
+            b_star[j] = NULL;
+        }        
+    }
+        
+    if(trans_matrix) {
+        H = new bigintmat(n,n,coef);
+    }
+    
+    if(!integral) {
+        B = new number[n+1]; //B[0] is not used
+        B[0] = NULL;
+        for(int j=1; j<=n; j++) {
+            B[j] = n_Init(0,coef);
         }
     }
     
-    
-    if(B == NULL) {
-        B = new number[n+1]; //B[0] is not used   
-    }
-    for(int j=0; j<=n; j++) {
-        B[j] = n_Init(0,coef);
+    if(!integral) {
+        my = new bigintmat(m,n,coef);
     }
     
-    if(d == NULL) {
-        d = new number[n+1]; //B[0] is not used   
-    }
-    for(int j=0; j<=n; j++) {
-        d[j] = n_Init(0,coef);
-    }
-    
-    delete H;
-    if(trans_matrix) {
-        H = new bigintmat(n,n,coef);
-    } else {
-        H = NULL;
-    }
-    
-    delete my;
-    my = new bigintmat(m,n,coef);
-    
-    delete lambda;
-    lambda = new bigintmat(m,n,coef);
-    
-    delete[] d;
     if(integral) {
         d = new number[n+1];
-    } else {
-        d = NULL;
+        for(int j=0; j<=n; j++) {
+            d[j] = n_Init(0,coef);
+        }
     }
     
-    this->c = c; //NOTE: make copy and check coeffs
-    
-    
-    
-    if (n == 0) { //NOTE: necessary?
-        return true;
+    if(integral) {
+        lambda = new bigintmat(m,n,coef);
     }
-    if (n == 1) {
-        return false;
-    }
-    
-    
+        
     
     DEBUG_PRINT(("Initialize\n"));
+    
+    DEBUG_LLL();
+    
     int k = 2;
     int k_max = 1;
     
     if(integral) {
+        n_Delete(&d[0],coef);
         d[0] = n_Init(1,coef);
+        
         if(only_gram_matrix_given) {
             d[1] = n_Copy(gram_matrix_view(1,1),coef);
         } else {
@@ -302,10 +377,20 @@ bool lattice::LLL(number& c, bool trans_matrix, bool integral, bool independentV
         H->one();
     }
     
+    
+    if (n == 0) { //NOTE: necessary?
+        return true;
+    }
+    if (n == 1) {
+        return false;
+    }
+    
+    
     do{
         DEBUG_PRINT(("Incremental Gram-Schmidt\n"));
-        DEBUG_VAR(k);
-        DEBUG_VAR(k_max);
+        
+        DEBUG_LLL();
+        
         if(k > k_max){
             k_max = k;
             
@@ -328,53 +413,71 @@ bool lattice::LLL(number& c, bool trans_matrix, bool integral, bool independentV
             }
         }
         
-        while(true){
+       
+        bool LLL_condition = false;
+        do{
             DEBUG_PRINT(("Test LLL condition\n"));
+            
+            DEBUG_LLL();
+            
             if(integral) {
                 REDI(k,k-1);
-                                
+            } else {
+                RED(k,k-1);
+            }         
+            
+            DEBUG_LLL();
+            
+            if(integral) {
                 number leftside = n_Mult(d[k], d[k-2], coef);
                 number d_kminusone_squared = n_Mult(d[k-1], d[k-1], coef);
-                number c_times_stuff = n_Mult(c,d_kminusone_squared,coef);
+                number c_times_stuff = n_Mult(this->c,d_kminusone_squared,coef);
                 number lambda_k_kminusone_squared = n_Mult(lambda->view(k,k-1), lambda->view(k,k-1), coef);
                 number rightside = n_Sub(c_times_stuff, lambda_k_kminusone_squared, coef);
-                if(n_Greater(rightside,leftside,coef)){
+                LLL_condition = ! n_Greater(rightside,leftside,coef);
+            } else {
+                number my_squared = n_Mult(my->view(k,k-1), my->view(k,k-1), coef);
+                number difference = n_Sub(this->c,my_squared, coef);
+                number product = n_Mult(difference, B[k-1], coef);
+                
+                LLL_condition = ! n_Greater(product, B[k], coef);
+                
+                n_Delete(&my_squared,coef);
+                n_Delete(&difference,coef);
+                n_Delete(&product,coef);
+            }
+            
+            DEBUG_VAR(LLL_condition);
+            
+            if(!LLL_condition) {
+                if(integral) {
                     if(independentVectors) {
                         SWAPI(k,k_max);
                     } else {
                         SWAPG_integral(k,k_max);
                     }
-                    if(k>2){
-                        k--;
-                    }
                 } else {
-                    for(int l=k-2; l>0; l--){
-                        REDI(k,l);
-                    }
-                    k++;
-                    break;
-                }
-            } else {
-                RED(k,k-1);
-                // if((B[k] < (c- my*my)*B[k-1]))
-                if(n_Greater(n_Mult(n_Sub(c, n_Mult(my->view(k,k-1), my->view(k,k-1), coef), coef), B[k-1], coef), B[k], coef)){
                     if(independentVectors) {
                         SWAP(k,k_max);
                     } else {
                         SWAPG(k,k_max);
                     }
-                    if(k>2){
-                        k--;
-                    }
-                } else {
-                    for(int l=k-2; l>0; l--){
-                        RED(k,l);
-                    }
-                    k++;
-                    break;
+                }
+                if(k>2){
+                    k--;
                 }
             }
+        } while(!LLL_condition);
+        
+        for(int l=k-2; l>0; l--){
+            if(integral) {
+                REDI(k,l);
+            } else {
+                RED(k,l);
+            }
+            DEBUG_LLL();
         }
+        k++;
     } while(k <= n);
     
     if(!only_gram_matrix_given) {
@@ -385,9 +488,7 @@ bool lattice::LLL(number& c, bool trans_matrix, bool integral, bool independentV
     } else {
         //NOTE:...
     }
-    
-        
-        
+      
     DEBUG_PRINT(("End of LLL\n"));
     return false;
 }
@@ -395,22 +496,48 @@ bool lattice::LLL(number& c, bool trans_matrix, bool integral, bool independentV
 void lattice::RED(int k, int l){
     DEBUG_PRINT(("Start RED with k=%d and l=%d\n",k,l));
 
-    number n_1div2    = n_Div(n_Init( 1,coef),n_Init(2,coef),coef);
-    number n_neg1div2 = n_Div(n_Init(-1,coef),n_Init(2,coef),coef);
+    number n_1    = n_Init( 1,coef);
+    number n_neg1 = n_Init(-1,coef);
+    number n_2    = n_Init( 2,coef);
+    
+    number n_1div2    = n_Div(n_1,n_2,coef);
+    number n_neg1div2 = n_Div(n_neg1,n_2,coef);
+    
     number my_kl = my->get(k,l);
+    
     DEBUG_N(my_kl);
     
-    // if(|my_kl| > 1/2)
-    if(n_Greater (my_kl,n_1div2,coef) || n_Greater (n_neg1div2,my_kl,coef)) { 
+    bool abs_my_bigger_than_half = n_Greater (my_kl,n_1div2,coef) || n_Greater (n_neg1div2,my_kl,coef);
+
+    if(abs_my_bigger_than_half) { 
+        
+        
+        
+        number n_0 = n_Init(0,coef);
         
         number my_klplus1div2;
-        if(n_Greater (my_kl,n_Init(0,coef),coef)) {
+        
+        if(n_Greater (my_kl,n_0,coef)) {
             my_klplus1div2 = n_Add(my_kl, n_1div2, coef);
         } else {
             my_klplus1div2 = n_Add(my_kl, n_neg1div2, coef);
         }
-                
-        number q = n_IntDiv(n_GetNumerator(my_klplus1div2,coef),n_GetDenom(my_klplus1div2,coef),coef); 
+        
+        n_Delete(&n_0,coef);
+        n_0 = NULL;
+        
+        number numerator = n_GetNumerator(my_klplus1div2,coef); 
+        number denominator = n_GetDenom(my_klplus1div2,coef);
+        
+        number q = n_IntDiv(numerator,denominator,coef); 
+        
+        n_Delete(&numerator,coef);
+        numerator = NULL;
+        n_Delete(&denominator,coef);
+        denominator = NULL;
+        
+        n_Delete(&my_klplus1div2,coef);
+        my_klplus1div2 = NULL;
         
         DEBUG_N(q);
         
@@ -419,57 +546,114 @@ void lattice::RED(int k, int l){
                 gram_matrix_rawset(i,k,n_Sub(gram_matrix_view(i,k),n_Mult(gram_matrix_view(i,l),q,coef),coef));
             }
         } else {
-            b[k]->sub(bimMult(b[l],q,coef));
+            bigintmat * prod = bimMult(b[l],q,coef);
+            b[k]->sub(prod);
+            delete prod;
         }
 
         if(trans_matrix) {
-            H->addcol(k,l,n_Mult(q,n_Init(-1,coef),coef),coef);
+            number prod = n_Mult(q,n_neg1,coef);
+            H->addcol(k,l,prod,coef);
+            n_Delete(&prod,coef);
         }
         
-        my->set(k,l,n_Sub(my->view(k,l),q,coef),coef);
+        {
+            number diff = n_Sub(my->view(k,l),q,coef);
+            my->set(k,l,diff,coef);
+            n_Delete(&diff,coef);
+        }
+        
         
         for(int i=1;i<=l-1;i++){
-            my->set(k,i,n_Sub(my->view(k,i), n_Mult(q, my->view(l,i),coef), coef), coef);
+            number prod = n_Mult(q, my->view(l,i),coef);
+            number diff = n_Sub(my->view(k,i), prod, coef);
+            my->set(k,i,diff,coef);
+            n_Delete(&prod,coef);
+            n_Delete(&diff,coef);
         }
+        
+        n_Delete(&q,coef);
     }
+    
+    n_Delete(&n_1,coef);
+    n_Delete(&n_neg1,coef);
+    n_Delete(&n_2,coef);
+    n_Delete(&n_1div2,coef);
+    n_Delete(&n_neg1div2,coef);
+
+    
     DEBUG_PRINT(("End of RED\n"));
 }
 
 void lattice::REDI(int k, int l){
     DEBUG_PRINT(("Start REDI with k=%d and l=%d\n",k,l));
     
+    number n_neg1 = n_Init(-1,coef);
+    number n_2 = n_Init( 2,coef);
     
-    number two_lambda = n_Mult(n_Init(2,coef),lambda->view(k,l),coef);
-    number minus_d_l = n_Mult(d[l],n_Init(-1,coef),coef);
+    number two_lambda = n_Mult(n_2,lambda->view(k,l),coef);
+    number minus_d_l = n_Mult(n_neg1,d[l],coef);
+    
     if(n_Greater(two_lambda,d[l],coef)||n_Greater(minus_d_l,two_lambda,coef)) {
         
-        number dividend = n_Add(two_lambda,d[l],coef);
-        number divisor = n_Mult(n_Init(2,coef),d[l],coef);
-        DEBUG_N(dividend);
-        DEBUG_N(divisor);
-        
-        number q = n_IntDiv(dividend,divisor,coef);
-        
+        number q;
+        {
+            number dividend = n_Add(two_lambda,d[l],coef);
+            number divisor = n_Mult(n_2,d[l],coef);
+            DEBUG_N(dividend);
+            DEBUG_N(divisor);
+            
+            number mod = n_IntMod(dividend,divisor,coef);
+            number difference = n_Sub(dividend,mod,coef);
+            
+            q = n_IntDiv(difference,divisor,coef);
+            
+            n_Delete(&dividend,coef);
+            n_Delete(&divisor,coef);
+            n_Delete(&mod,coef);
+            n_Delete(&difference,coef);
+        }
+        // number q = n_IntDiv(dividend,divisor,coef);
+        // Doesn't work without error
         DEBUG_N(q);
         
         if(trans_matrix) {
-            H->addcol(k,l,n_Mult(q,n_Init(-1,coef),coef),coef);
+            number prod = n_Mult(q,n_neg1,coef);
+            H->addcol(k,l,prod,coef);
+            n_Delete(&prod,coef);
         }
         
         if(only_gram_matrix_given){
             for(int i=1; i<=n; i++){
-                gram_matrix_rawset(i,k,n_Sub(gram_matrix_view(i,k),n_Mult(gram_matrix_view(i,l),q,coef),coef));
+                number prod = n_Mult(gram_matrix_view(i,l),q,coef);
+                gram_matrix_rawset(i,k,n_Sub(gram_matrix_view(i,k),prod,coef));
+                n_Delete(&prod,coef);
             }
         } else {
-            b[k]->sub(bimMult(b[l],q,coef));
+            bigintmat * prod = bimMult(b[l],q,coef);
+            b[k]->sub(prod);
+            delete prod;
         }
         
-        lambda->set(k,l,n_Sub(lambda->view(k,l), n_Mult(q, d[l],coef),coef),coef);
+        {
+            number prod = n_Mult(q, d[l],coef);
+            number diff = n_Sub(lambda->view(k,l), prod,coef);
+            lambda->set(k,l,diff,coef);
+            n_Delete(&prod,coef);
+            n_Delete(&diff,coef);
+        }
         
         for(int i=1;i<=l-1;i++){
-            lambda->set(k,i,n_Sub(lambda->view(k,i), n_Mult(q, lambda->view(l,i),coef), coef), coef);
+            number prod = n_Mult(q, lambda->view(l,i),coef);
+            number diff = n_Sub(lambda->view(k,i), prod, coef);
+            lambda->set(k,i,diff,coef);
+            n_Delete(&prod,coef);
+            n_Delete(&diff,coef);
         }
     }
+    
+    n_Delete(&n_neg1,coef);
+    n_Delete(&n_2,coef);
     
     DEBUG_PRINT(("End of REDI\n"));
 }
@@ -495,38 +679,92 @@ void lattice::SWAP(int k, int k_max){
     }
     
     for(int j = 1; j <= k-2; j++){
+        DEBUG_VAR(j);
         number my_kj = my->get(k,j);
+        DEBUG_N(my_kj);
         my->set(k,j,my->view(k-1,j),coef);
         my->set(k-1,j,my_kj,coef);
+        n_Delete(&my_kj,coef);
     }
     
     number my_ = my->get(k,k-1);
     
-    number B_ = n_Add(B[k], n_Mult(n_Mult(my_,my_,coef), B[k-1], coef), coef); 
+    number B_;
+    {
+        number my_squared = n_Mult(my_,my_,coef);
+        number prod = n_Mult(my_squared, B[k-1], coef);
+        B_ = n_Add(B[k], prod, coef);
+        n_Delete(&my_squared,coef);
+        n_Delete(&prod,coef);
+    }
+    DEBUG_N(B_);
     
-    my->set(k,k-1,n_Div(n_Mult(my_, B[k-1], coef), B_, coef), coef);
     
+    {
+        number prod = n_Mult(my_, B[k-1], coef);
+        number div = n_Div(prod, B_, coef);
+        my->set(k,k-1,div,coef);
+        n_Delete(&prod,coef);
+        n_Delete(&div,coef);
+    }
     
     if(!only_gram_matrix_given) {
         bigintmat * b_ = bimCopy(b_star[k-1]);
+        DEBUG_BIM(b_);
         
-        b_star[k-1] = bimAdd(b_star[k], bimMult(b_, my_, coef));
+        {
+            bigintmat * prod = bimMult(b_, my_, coef);
+            b_star[k-1] = bimAdd(b_star[k], prod);
+            delete prod;
+        }
         
-        b_star[k] = bimSub(bimMult(b_, n_Div(B[k], B_, coef),coef), bimMult( b_star[k], my->view(k,k-1), coef));
-
+        {
+            number quot = n_Div(B[k], B_, coef);
+            bigintmat * prod1 = bimMult(b_, quot,coef);
+            bigintmat * prod2 = bimMult( b_star[k], my->view(k,k-1),coef);
+            
+            b_star[k] = bimSub(prod1, prod2);
+            
+            n_Delete(&quot,coef);
+            delete prod1;
+            delete prod2;
+        }
+        
         delete b_;
     }
     
     
+    {
+        number prod = n_Mult(B[k], B[k-1], coef);
+        n_Delete(&B[k],coef);
+        B[k] = n_Div(prod, B_, coef);
+        n_Delete(&prod,coef);
+    }
+    DEBUG_N(B[k]);
     
-    B[k] = n_Div(n_Mult(B[k], B[k-1], coef), B_, coef);
-    
+    n_Delete(&B[k-1],coef);
     B[k-1] = n_Copy(B_, coef);
     for(int i = k+1; i <= k_max; i++){
+        DEBUG_VAR(i);
         number t = my->get(i,k);
-        my->set(i,k,n_Sub(my->get(i,k-1), n_Mult(my_, t, coef), coef), coef);
-        my->set(i,k-1, n_Add(t, n_Mult(my->view(k,k-1), my->view(i,k), coef), coef), coef);
+        number prod1 = n_Mult(my_, t, coef);
+        number diff = n_Sub(my->get(i,k-1), prod1, coef);
+        my->set(i,k,diff,coef);
+        number prod2 = n_Mult(my->view(k,k-1), my->view(i,k), coef);
+        number sum = n_Add(t, prod2, coef);
+        my->set(i,k-1, sum, coef);
+        
+        n_Delete(&t,coef);
+        n_Delete(&prod1,coef);
+        n_Delete(&diff,coef);
+        n_Delete(&prod2,coef);
+        n_Delete(&sum,coef);
     }
+    
+    n_Delete(&my_,coef);
+    n_Delete(&B_,coef);
+    
+    
     DEBUG_PRINT(("End of SWAP\n"));
 }
 
@@ -552,23 +790,56 @@ void lattice::SWAPI(int k, int k_max){
     for(int j = 1; j <= k-2; j++){
         number lambda_kj = lambda->get(k,j);
         lambda->set(k,j,lambda->view(k-1,j),coef);
-        lambda->set(k-1,j,lambda_kj,coef);
+        lambda->rawset(k-1,j,lambda_kj,coef);
     }
     
     number lambda_ = lambda->get(k,k-1);
     
-    number B = n_Div(n_Add(n_Mult(d[k-2],d[k],coef),n_Mult(lambda_,lambda_,coef),coef),d[k-1],coef);
+    
+    number B;
+    {
+        number prod = n_Mult(d[k-2],d[k],coef);
+        number lambda_squared = n_Mult(lambda_,lambda_,coef);
+        number sum = n_Add(prod,lambda_squared,coef);
+        B = n_Div(sum,d[k-1],coef);
+        n_Delete(&prod,coef);
+        n_Delete(&lambda_squared,coef);
+        n_Delete(&sum,coef);
+    }
     
     for(int i = k+1; i <= k_max; i++){
         number t = lambda->get(i,k);
         
-        lambda->set(i,k,n_Div(n_Sub(n_Mult(d[k],lambda->view(i,k-1),coef),n_Mult(lambda_,t,coef),coef),d[k-1],coef),coef);
+        {
+            number prod1 = n_Mult(d[k],lambda->view(i,k-1),coef);
+            number prod2 = n_Mult(lambda_,t,coef);
+            number diff = n_Sub(prod1,prod2,coef);
+            number quot = n_Div(diff,d[k-1],coef);
+            lambda->set(i,k,quot,coef);
+            n_Delete(&prod1,coef);
+            n_Delete(&prod2,coef);
+            n_Delete(&diff,coef);
+            n_Delete(&quot,coef);
+        }
         
-        lambda->set(i,k-1,n_Div(n_Add(n_Mult(B,t,coef),n_Mult(lambda_,lambda->view(i,k),coef),coef),d[k],coef),coef);
+        {
+            number prod1 = n_Mult(B,t,coef);
+            number prod2 = n_Mult(lambda_,lambda->view(i,k),coef);
+            number sum = n_Add(prod1,prod2,coef);
+            number quot = n_Div(sum,d[k],coef);
+            lambda->set(i,k-1,quot,coef);
+            n_Delete(&prod1,coef);
+            n_Delete(&prod2,coef);
+            n_Delete(&sum,coef);
+            n_Delete(&quot,coef);
+        }
         
+        n_Delete(&t,coef);
     }
     
     d[k-1] = B;
+
+    n_Delete(&lambda_,coef);
     
     DEBUG_PRINT(("End of SWAPI\n"));
 }
@@ -692,9 +963,18 @@ bool lattice::gram_schmidt(int k) {
         b_star[k] = bimCopy(b[k]);  
         
         for(int j=1; j<k; j++) {
-            my->set(k,j,n_Div(scalarproduct(b[k],b_star[j]),B[j],coef),coef);
+            DEBUG_VAR(j);
+            number scalprd = scalarproduct(b[k],b_star[j]);
+            number quot = n_Div(scalprd,B[j],coef);
             
-            b_star[k]->sub(bimMult(b_star[j],my->view(k,j),coef));
+            my->set(k,j,quot,coef);
+            
+            bigintmat * prod = bimMult(b_star[j],my->view(k,j),coef);
+            b_star[k]->sub(prod);
+            
+            n_Delete(&scalprd,coef);
+            n_Delete(&quot,coef);
+            delete prod;
         }
         
         B[k] = scalarproduct(b_star[k],b_star[k]);
@@ -745,36 +1025,57 @@ void lattice::gram_schmidt_MLLL(int k) {
     if(only_gram_matrix_given) { //see Cohen 2.6.3 Remark (2)  
         for(int j=1; j<k; j++) {
             if(n_IsZero(B[j],coef)) {
-                my->set(k,j,n_Init(0,coef));
+                my->rawset(k,j,n_Init(0,coef));
             } else {
                 number sum = n_Init(0,coef);
+                
                 for(int i=1; i<k; i++) {
-                    n_InpAdd(sum,n_Mult(n_Mult(my->view(j,i),my->view(k,i),coef),B[i],coef),coef);
+                    number prod1 = n_Mult(my->view(j,i),my->view(k,i),coef);
+                    number prod2 = n_Mult(prod1,B[i],coef);
+                    n_InpAdd(sum,prod2,coef);
+                    n_Delete(&prod1,coef);
+                    n_Delete(&prod2,coef);
                 }
-                my->set(k,j,n_Mult(n_Sub(gram_matrix_view(k,j),sum,coef),B[j],coef),coef);
+                
+                {
+                    number diff = n_Sub(gram_matrix_view(k,j),sum,coef);
+                    my->rawset(k,j,n_Mult(diff,B[j],coef),coef);
+                    n_Delete(&diff,coef);
+                }
+                
                 n_Delete(&sum,coef);
             }
         }
         
-        number sum = n_Init(0,coef);
-        for(int i=1; i<k; i++) {
-            n_InpAdd(sum,n_Mult(n_Mult(my->view(k,i),my->view(k,i),coef),B[i],coef),coef);
+        {
+            number sum = n_Init(0,coef);
+            for(int i=1; i<k; i++) {
+                number prod1 = n_Mult(my->view(k,i),my->view(k,i),coef);
+                number prod2 = n_Mult(prod1,B[i],coef);
+                n_InpAdd(sum,prod2,coef);
+                n_Delete(&prod1,coef);
+                n_Delete(&prod2,coef);                
+            }
+            B[k] = n_Sub(gram_matrix_view(k,k),sum,coef);
+            n_Delete(&sum,coef);
         }
-        B[k] = n_Sub(gram_matrix_view(k,k),sum,coef);
-        n_Delete(&sum,coef);
     } else {
         for(int j=1; j<k; j++) {
             if(n_IsZero(B[j],coef)) {
-                my->set(k,j,n_Init(0,coef));
+                my->rawset(k,j,n_Init(0,coef));
             } else {
-                my->set(k,j,n_Div(scalarproduct(b[k],b_star[j]),B[j],coef),coef);
+                number scalprd = scalarproduct(b[k],b_star[j]);
+                my->rawset(k,j,n_Div(scalprd,B[j],coef),coef);
+                n_Delete(&scalprd,coef);
             }
         }
         
         delete b_star[k];
         b_star[k] = bimCopy(b[k]);
         for(int j=1; j<k; j++) {
-            b_star[k]->sub(bimMult(b_star[j],my->view(k,j),coef));
+            bigintmat * prod = bimMult(b_star[j],my->view(k,j),coef);
+            b_star[k]->sub(prod);
+            delete prod;
         }
         
         B[k] = scalarproduct(b_star[k],b_star[k]);
@@ -826,9 +1127,9 @@ bigintmat * lattice::enumerate_all(number a){
     //DEBUG_BLOCK(true);
     DEBUG_PRINT(("Start enumerate_all\n"));
     DEBUG_PRINT(("check input\n"));
-    if(!n_GreaterZero(a,out_coef)){
-        if(n_IsZero(a,out_coef) && n==m){
-            return new bigintmat(m,1,out_coef);
+    if(!n_GreaterZero(a,fieldcoef)){
+        if(n_IsZero(a,fieldcoef) && n==m){
+            return new bigintmat(m,1,fieldcoef);
         } else {
             DEBUG_PRINT(("negative input\n"));
             return NULL;
@@ -851,7 +1152,7 @@ bigintmat * lattice::enumerate_all(number a){
     DEBUG_PRINT(("Start backtracking\n"));
     DEBUG_PRINT(("Initialize vector and other variables\n"));
     std::vector<std::pair<number,bigintmat*> > elementsvector;
-    elementsvector.push_back( std::make_pair(zero, new bigintmat(m,1,out_coef)));
+    elementsvector.push_back( std::make_pair(zero, new bigintmat(m,1,fieldcoef)));
     if( x != NULL){
         delete x;
         x=NULL;
@@ -864,8 +1165,8 @@ bigintmat * lattice::enumerate_all(number a){
         bound = NULL;
     }
     bound = new number[n+1];
-    nMapFunc f = n_SetMap(out_coef, coef);
-    bound[1] = f(a, out_coef, coef);//map a to coef
+    nMapFunc f = n_SetMap(fieldcoef, coef);
+    bound[1] = f(a, fieldcoef, coef);//map a to coef
     //n_Print(bound[1],coef);PrintS("\n");
     DEBUG_PRINT(("set bound\n"));
     for(int i = 2; i<n+1; i++){
@@ -879,7 +1180,7 @@ bigintmat * lattice::enumerate_all(number a){
     while(!n_Equal(minusOne,check,coef)){
         //append x to elements
         DEBUG_PRINT(("new element to list\n"));
-        //elements->appendCol(bimChangeout_coeff(x,out_coef));
+        //elements->appendCol(bimChangefieldcoeff(x,fieldcoef));
         check = n_Sub(bound[1],check,coef);
         check = n_Sub(bound[n],check,coef);
         elementsvector.push_back(std::make_pair(n_Copy(check,coef),bimCopy(x)));
@@ -899,14 +1200,14 @@ bigintmat * lattice::enumerate_all(number a){
         check = enumerate_get_next();
     }
     DEBUG_PRINT(("generate bigintmat for return\n"));
-    bigintmat* elements = new bigintmat(m,1,out_coef);
+    bigintmat* elements = new bigintmat(m,1,fieldcoef);
     if(b!=NULL){
         for(unsigned i=1; i<elementsvector.size();i++){
-            elements->appendCol(bimChangeCoeff(elementsvector[i].second,out_coef));
+            elements->appendCol(bimChangeCoeff(elementsvector[i].second,fieldcoef));
         }
     } else {
         for(unsigned i=1; i<elementsvector.size();i++){
-           elements->appendCol(bimChangeCoeff(elementsvector[i].second,out_coef));
+           elements->appendCol(bimChangeCoeff(elementsvector[i].second,fieldcoef));
         }
     }
     delete bound;
@@ -924,7 +1225,7 @@ bigintmat * lattice::enumerate_next(number a, bigintmat * in){//next element x w
         return NULL;
     }
     
-    if(!n_GreaterZero(a,out_coef) || n_IsZero(a,out_coef) ){
+    if(!n_GreaterZero(a,fieldcoef) || n_IsZero(a,fieldcoef) ){
         DEBUG_PRINT(("negative input\n"));
         return NULL;
     }
@@ -957,8 +1258,8 @@ bigintmat * lattice::enumerate_next(number a, bigintmat * in){//next element x w
     }
     bound = new number[n+1];
     DEBUG_PRINT(("set bound\n"));
-    nMapFunc f = n_SetMap(out_coef, coef);
-    bound[n] = f(a, out_coef, coef);//map a to coef
+    nMapFunc f = n_SetMap(fieldcoef, coef);
+    bound[n] = f(a, fieldcoef, coef);//map a to coef
     for(int j = n; j>1; j--){
         check = check_bound(j);
         bound[j-1] = n_Sub(bound[j],check,coef);
@@ -971,18 +1272,18 @@ bigintmat * lattice::enumerate_next(number a, bigintmat * in){//next element x w
     if(n_Equal(minusOne,norm,coef)){
         return NULL;
     }
-    bigintmat * out = bimChangeCoeff(x,out_coef);
+    bigintmat * out = bimChangeCoeff(x,fieldcoef);
     return out;
 }
 
 bigintmat * lattice::enumerate_next(number a){
     //DEBUG_BLOCK(true);
     DEBUG_PRINT(("Start enumerate_next number\n"));
-    bigintmat * in =new bigintmat(m,1,out_coef);
+    bigintmat * in =new bigintmat(m,1,fieldcoef);
     if(x == NULL){
-        in->set(1,1,n_Init(1,out_coef),out_coef);
+        in->set(1,1,n_Init(1,fieldcoef),fieldcoef);
     } else {
-        in = bimChangeCoeff(x,out_coef);
+        in = bimChangeCoeff(x,fieldcoef);
     }
     return enumerate_next(a,in);
 }
@@ -1024,7 +1325,7 @@ bigintmat * lattice::enumerate_next(){
         }
         return NULL;
     }
-    bigintmat * out = bimChangeCoeff(x,out_coef);
+    bigintmat * out = bimChangeCoeff(x,fieldcoef);
     return out;
 }
 
@@ -1212,6 +1513,26 @@ bigintmat * lattice::get_gram_matrix() {
     return r;
 }
 
+bigintmat * lattice::get_lattice_element(bigintmat * x){
+    bigintmat * out = new bigintmat(m,1,coef);
+    if(x==NULL){
+        return NULL;
+    }
+    if(x->rows() * x->cols()!=m){
+        Werror("dimension error of input\n");
+        return NULL;
+    }
+    nMapFunc f = n_SetMap(x->basecoeffs(),coef);
+    for(int i=1;i<=n;i++){
+        number a = f(x->view(i-1),x->basecoeffs(),coef);
+        bigintmat * temp = bimMult(basis[i],a,coef);
+        n_Delete(&a,coef);
+        out->add(temp);
+        delete temp;
+    }
+    return out;
+}
+
 
 ///////////////////////////////////////
 //               Setter             ///
@@ -1250,6 +1571,9 @@ number lattice::gram_matrix_view(int i, int j){
 }
 
 number scalarproduct(bigintmat * a, bigintmat * b) {
+    DEBUG_BLOCK(false);
+    DEBUG_PRINT(("Start scalarproduct\n"));  
+    
     if(a->cols()!=1) {
         Werror("a->cols()!=1 in scalarproduct(a,b)\n");
         return NULL;
@@ -1259,7 +1583,7 @@ number scalarproduct(bigintmat * a, bigintmat * b) {
         return NULL;
     }
     if(a->rows()!=b->rows()) {
-        Werror("b->cols()!=1 in scalarproduct(a,b)\n");
+        Werror("a->rows()!=b->rows() in scalarproduct(a,b)\n");
         return NULL;
     }
     if(a->basecoeffs()!=b->basecoeffs()) {
@@ -1270,10 +1594,14 @@ number scalarproduct(bigintmat * a, bigintmat * b) {
     coeffs coef = a->basecoeffs();
     number p = n_Init(0,coef);
     for(int i = 1; i <= b->rows(); i++){
+        DEBUG_VAR(i);
         number prod = n_Mult(a->view(i,1), b->view(i,1), coef);
+        DEBUG_N(prod);
         n_InpAdd(p, prod, coef);
         n_Delete(&prod,coef);
     }
+    DEBUG_N(p);
+    DEBUG_PRINT(("End scalarproduct\n"));  
     return p;
 }
 
@@ -1384,7 +1712,7 @@ bigintmat * minkowksi(bigintmat ** elementarray,int size_elementarray, number * 
         n_Delete(&pot,comp);
     }
     DEBUG_PRINT(("imaginary part\n"));
-    number sqrt2 = n_Init(1,comp);
+//     number sqrt2 = n_Init(1,comp); // NOTE ???
     if(r2>0){
         number two = n_Init(2,comp);
         number sqrt2 = squareroot(two,comp,precision+10);
