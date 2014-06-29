@@ -30,7 +30,7 @@ static void * nforder_ideal_Init(blackbox */*b*/)
   nforder_AE->ref++;
   return nforder_AE;
 }
-static char * nforder_ideal_String(blackbox *b, void *d)
+static char * nforder_ideal_String(blackbox */*b*/, void *d)
 {
   StringSetS("");
   if (d) ((nforder_ideal *)d)->Write();
@@ -213,6 +213,87 @@ static BOOLEAN nforder_ideal_bb_setup()
   PrintLn();
   return FALSE; // ok, TRUE = error!
 }
+
+
+// lattice type: ------------------------------------------------------------
+
+static int lattice_id=1; //NOTE 1 works?
+
+static void * lattice_Init(blackbox */*b*/)
+{
+  void * l = omAlloc(sizeof(lattice));
+  Print("create at %lx\n",(unsigned long)l);
+  return (void*) l;
+}
+
+static void lattice_destroy(blackbox * /*b*/, void *d)
+{
+  if (d!=NULL)
+  {
+    Print("destroy %x at %lx\n",*((int*)d),(unsigned long)d);
+    delete (lattice*)d;
+  }
+}
+
+static void * lattice_Copy(blackbox* /*b*/, void *d)
+{ 
+  lattice * ll = (lattice*) omAlloc(sizeof(lattice));
+  *ll = *((lattice*)d);
+  return ll;   //NOTE
+}
+
+
+static char * lattice_String(blackbox */*b*/, void */*d*/)
+{
+  return NULL;   //NOTE
+}
+
+static void lattice_Print(blackbox */*b*/, void */*d*/)
+{
+}
+
+static BOOLEAN lattice_Assign(leftv l, leftv r)
+{
+  if (l->Typ()==r->Typ()) // assignment of same type
+  {
+    if (l->rtyp==IDHDL) {// assign to variable    
+      omFree(IDDATA((idhdl)l->data));
+      IDDATA((idhdl)l->data)=(char *)lattice_Copy((blackbox*)NULL, r->data);
+    } else { // assign to a part of a structure
+      leftv ll = l->LData();
+      if(ll == NULL) {
+          return TRUE; // out of array bounds or similiar
+      }
+      omFree(ll->data);
+      l->data=(char*)lattice_Copy((blackbox*)NULL, r->data);
+    }
+  } else if (r->Typ() == BIGINTMAT_CMD) { // use matrix as lattice base
+    lattice * lat = new lattice((bigintmat*)r->Data(),false);
+//     omFree(IDDATA((idhdl)l->data));
+    l->data=(char*) lat;
+  } else {
+    Werror("assign Type(%d) = Type(%d) not implemented",l->Typ(),r->Typ());
+    return TRUE;
+  }
+  return FALSE;
+}
+
+static BOOLEAN lattice_bb_setup()
+{
+  blackbox * b = (blackbox*) omAlloc0(sizeof(blackbox));
+  b->blackbox_Init = lattice_Init;
+  b->blackbox_destroy = lattice_destroy;
+  b->blackbox_Copy = lattice_Copy;
+  b->blackbox_String = lattice_String;
+//   b->blackbox_Print = lattice_Print;
+  b->blackbox_Assign = lattice_Assign;
+  lattice_id = setBlackboxStuff(b,"lattice");    
+
+  Print("setup: created a blackbox type [%d] '%s'",lattice_id, getBlackboxName(lattice_id));
+  PrintLn();
+  return FALSE;
+}
+
 
 // module stuff: ------------------------------------------------------------
 
@@ -453,22 +534,129 @@ static BOOLEAN tempTest(leftv result, leftv arg)
   return FALSE;
 }
 
-static BOOLEAN LLL(leftv result, leftv arg)
+// static BOOLEAN LLL(leftv result, leftv arg)
+// { 
+//   if( (arg == NULL) 
+//     ||(arg->Typ() != BIGINTMAT_CMD)) 
+//   {
+//     WerrorS("usage: LLL(bigintmat)");
+//   }
+//   bigintmat * a = (bigintmat *) arg->Data();
+//   
+//   lattice * l = new lattice(a);
+//   number c = NULL;
+//   l->LLL(c,false,true,true);
+//   bigintmat * reduced = l->get_reduced_basis();
+//   delete l;
+//   result->rtyp = BIGINTMAT_CMD;
+//   result->data = (void*) reduced;
+//   return FALSE;
+// }
+
+static BOOLEAN latticeFromBasis(leftv result, leftv arg)
 { 
   if( (arg == NULL) 
     ||(arg->Typ() != BIGINTMAT_CMD)) 
   {
-    WerrorS("usage: LLL(bigintmat)");
+    WerrorS("usage: latticeFromBasis(bigintmat)");
   }
-  bigintmat * a = (bigintmat *) arg->Data();
-  
-  lattice * l = new lattice(a);
+
+  bigintmat * a = (bigintmat *) arg->Data();  
+  lattice * l = new lattice(a,false);
+
+  result->rtyp = lattice_id;
+  result->data = (void*) l;
+  return FALSE;
+}
+
+static BOOLEAN latticeFromGramMatrix(leftv result, leftv arg)
+{ 
+  if( (arg == NULL) 
+    ||(arg->Typ() != BIGINTMAT_CMD)) 
+  {
+    WerrorS("usage: latticeFromGramMatrix(bigintmat)");
+  }
+
+  bigintmat * a = (bigintmat *) arg->Data();  
+  lattice * l = new lattice(a,true);
+
+  result->rtyp = lattice_id;
+  result->data = (void*) l;
+  return FALSE;
+}
+
+static BOOLEAN LLL(leftv result, leftv arg)
+{ 
+  if( (arg == NULL) 
+    ||(arg->Typ() != lattice_id)) 
+  {
+    WerrorS("usage: LLL(lattice)");
+  }
+  lattice * l = (lattice*) arg->Data();
+
   number c = NULL;
-  l->LLL(c,false,true,true);
+  l->LLL(c,true,false,true);
+  result->rtyp = NONE;
+  return FALSE;
+}
+
+static BOOLEAN getBasis(leftv result, leftv arg)
+{ 
+  if( (arg == NULL) 
+    ||(arg->Typ() != lattice_id)) 
+  {
+    WerrorS("usage: getBasis(lattice)");
+  }
+  lattice * l = (lattice*) arg->Data();
+
+  bigintmat * basis = l->get_basis();
+  result->rtyp = BIGINTMAT_CMD;
+  result->data = (void*) basis;
+  return FALSE;
+}
+
+static BOOLEAN getReducedBasis(leftv result, leftv arg)
+{ 
+  if( (arg == NULL) 
+    ||(arg->Typ() != lattice_id)) 
+  {
+    WerrorS("usage: getReducedBasis(lattice)");
+  }
+  lattice * l = (lattice*) arg->Data();
+
   bigintmat * reduced = l->get_reduced_basis();
-  delete l;
   result->rtyp = BIGINTMAT_CMD;
   result->data = (void*) reduced;
+  return FALSE;
+}
+
+static BOOLEAN getTransformationMatrix(leftv result, leftv arg)
+{ 
+  if( (arg == NULL) 
+    ||(arg->Typ() != lattice_id)) 
+  {
+    WerrorS("usage: getTransformationMatrix(lattice)");
+  }
+  lattice * l = (lattice*) arg->Data();
+
+  bigintmat * H = l->get_transformation_matrix();
+  result->rtyp = BIGINTMAT_CMD;
+  result->data = (void*) H;
+  return FALSE;
+}
+
+static BOOLEAN getGramMatrix(leftv result, leftv arg)
+{ 
+  if( (arg == NULL) 
+    ||(arg->Typ() != lattice_id)) 
+  {
+    WerrorS("usage: getGramMatrix(lattice)");
+  }
+  lattice * l = (lattice*) arg->Data();
+
+  bigintmat * gram = l->get_reduced_basis();
+  result->rtyp = BIGINTMAT_CMD;
+  result->data = (void*) gram;
   return FALSE;
 }
 
@@ -549,9 +737,55 @@ extern "C" int mod_init(SModulFunctions* psModulFunctions)
           "TempTest",
           FALSE, 
           tempTest);
-
+  
+  psModulFunctions->iiAddCproc(
+          (currPack->libname? currPack->libname: ""),
+          "latticeFromBasis",
+          FALSE, 
+          latticeFromBasis);
+  
+  psModulFunctions->iiAddCproc(
+          (currPack->libname? currPack->libname: ""),
+          "latticeFromGramMatrix",
+          FALSE, 
+          latticeFromGramMatrix);
+  
+  psModulFunctions->iiAddCproc(
+          (currPack->libname? currPack->libname: ""),
+          "LLL",
+          FALSE, 
+          LLL);
+  
+  psModulFunctions->iiAddCproc(
+          (currPack->libname? currPack->libname: ""),
+          "getBasis",
+          FALSE, 
+          getBasis);
+  
+  psModulFunctions->iiAddCproc(
+          (currPack->libname? currPack->libname: ""),
+          "getReducedBasis",
+          FALSE, 
+          getReducedBasis);
+  
+  psModulFunctions->iiAddCproc(
+          (currPack->libname? currPack->libname: ""),
+          "getTransformationMatrix",
+          FALSE, 
+          getTransformationMatrix);
+  
+  psModulFunctions->iiAddCproc(
+          (currPack->libname? currPack->libname: ""),
+          "getGramMatrix",
+          FALSE, 
+          getGramMatrix);
+  
   module_help_main(
      (currPack->libname? currPack->libname: "NFOrder"),// the library name,
     "nforder: orders in number fields"); // the help string for the module
+  
+  lattice_bb_setup();
+  
+  
   return 1;
 }
