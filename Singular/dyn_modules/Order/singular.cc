@@ -659,6 +659,22 @@ static BOOLEAN getGramMatrix(leftv result, leftv arg)
   return FALSE;
 }
 
+static BOOLEAN enumerateAll(leftv result, leftv arg)
+{ 
+  if( (arg == NULL) 
+    ||(arg->Typ() != lattice_id)) 
+  {
+    WerrorS("usage: getGramMatrix(lattice)");
+  }
+  lattice * l = (lattice*) arg->Data();
+  arg = arg->next;
+  number c = ((number)arg->Data());
+  bigintmat * enumeration = l->enumerate_all(c);
+  result->rtyp = BIGINTMAT_CMD;
+  result->data = (void*) enumeration;
+  return FALSE;
+}
+
 
 extern "C" int mod_init(SModulFunctions* psModulFunctions)
 {
@@ -784,6 +800,12 @@ extern "C" int mod_init(SModulFunctions* psModulFunctions)
           "getGramMatrix",
           FALSE, 
           getGramMatrix); 
+  
+  psModulFunctions->iiAddCproc(
+          (currPack->libname? currPack->libname: ""),
+          "enumerateAll",
+          FALSE, 
+          enumerateAll);
   
   module_help_main(
      (currPack->libname? currPack->libname: "NFOrder"),// the library name,

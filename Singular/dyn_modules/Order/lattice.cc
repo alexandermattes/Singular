@@ -691,8 +691,7 @@ void lattice::SWAP(int k, int k_max){
         number my_kj = my->get(k,j);
         DEBUG_N(my_kj);
         my->set(k,j,my->view(k-1,j),coef);
-        my->set(k-1,j,my_kj,coef);
-        n_Delete(&my_kj,coef);
+        my->rawset(k-1,j,my_kj,coef);
     }
     
     number my_ = my->get(k,k-1);
@@ -1134,6 +1133,7 @@ bigintmat * lattice::enumerate_all(number a){
     //Quadratic Supplement
     //DEBUG_BLOCK(true);
     DEBUG_PRINT(("Start enumerate_all\n"));
+    DEBUG_N(a);
     DEBUG_PRINT(("check input\n"));
     if(!n_GreaterZero(a,coef)){
         if(n_IsZero(a,coef) && n==m){
@@ -1363,7 +1363,7 @@ bigintmat * lattice::enumerate_next(){
 
 //Private
 number lattice::enumerate_get_next(){
-    //DEBUG_BLOCK(true);
+    DEBUG_BLOCK(false);
     DEBUG_PRINT(("enumerate_get_next\n"));
     int index =1;
     //x->Print();PrintS("\n");
@@ -1489,7 +1489,7 @@ void lattice::increase_x(int index){
 number lattice::check_bound(int index){
     //DEBUG_BLOCK(true);DEBUG_PRINT(("check bound\n"));DEBUG_VAR(index);
     number check = n_Init(0,fieldcoef);
-    for(int i=index + 1;i<=Q->cols();i++){DEBUG_VAR(i);
+    for(int i=index + 1;i<=Q->cols();i++){
         number mult = n_Mult(x->view(i,1),Q->view(index,i),fieldcoef);
         n_InpAdd(check,mult,fieldcoef);
         n_Delete(&mult,fieldcoef);
@@ -1846,7 +1846,7 @@ bool get_nice_poly(number * poly_in, int deg, number * poly_out, coeffs coef){
     n_Delete(&four,coef);
     int precision = 42;//the answer to life, the universe and everything is always a good start
     lattice * latticeNF = minkowski(basis,poly_in,deg,coef,precision);
-    while(latticeNF->LLL(c,false,false,true) && precision < 32767){
+    while(latticeNF->LLL(c,coef,false,false,true) && precision < 32767){
         delete latticeNF;
         precision = precision +5;
         latticeNF = minkowski(basis,poly_in,deg,coef,precision);
@@ -1875,6 +1875,6 @@ bool get_nice_poly(number * poly_in, int deg, number * poly_out, coeffs coef){
     return false;
 }
 
-bool poly_is_primitive(number * poly,int deg){
+bool poly_is_primitive(number * /*poly*/,int /*deg*/){
     return true;
 }
