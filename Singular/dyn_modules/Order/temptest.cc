@@ -22,7 +22,7 @@ number temp_test(number a) {
 //     PrintS("\n\n\n");
 //     test_Enumerate();
 //     PrintS("\n\n\n");
-//     test_Minkowski();
+//     test_Enumerate(currRing->cf);
 //     PrintS("\n\n\n");
     test_LLL();
 
@@ -33,6 +33,13 @@ number temp_test(number a) {
 
 void test_LLL() {
     coeffs coef = nInitChar(n_Q,NULL);
+//     int precision = 6;
+//     LongComplexInfo paramReal;
+//     paramReal.float_len = si_min (precision, 32767);
+//     paramReal.float_len2 = si_min (precision, 32767);
+//     paramReal.par_name=(const char*)"i";
+//     coeffs coef = nInitChar(n_Z, NULL);
+    
     PrintS("Test LLL\n");
     
     //Vector containing test matrices
@@ -117,7 +124,7 @@ void test_LLL() {
 
     //Random matrices
     srand(1234);
-    for(int t = 0; t < 10; t++) {
+    for(int t = 0; t < 100; t++) {
         int matrix_size = rand() % 10 + 1;
         bigintmat * matrix = new bigintmat(matrix_size,matrix_size,coef);
         matrix->one();
@@ -138,8 +145,7 @@ void test_LLL() {
         
         lattice * l = new lattice(vec[i]);
         number c = NULL;
-         //LLL(c,trans_matrix,integral,independentVectors);
-        l->LLL(c,true,true,true);
+        l->LLL(c,coef,true,false,true);
         bigintmat * reduced = l->get_reduced_basis();
         bigintmat * H = l->get_transformation_matrix();
         
@@ -202,68 +208,52 @@ void test_LLL() {
 }
 
 
-void test_Enumerate() {   
+void test_Enumerate(coeffs coef) {   
     PrintS("Test Enumerate\n");
     
-    coeffs coef = nInitChar(n_Q,NULL);
-    number c = n_Init(8,coef);
+    //Random matrices
+    srand(1234);
     
-    //cout << "CoeffType of currRing: " << getCoeffType(currRing->cf) << '\n';
-    //cout << "n_Greater(n_Init(3,coef),n_Init(3,coef),coef): " << n_Greater(n_Init(3,coef),n_Init(3,coef),coef) << '\n';
+    number c = n_Init(1000,coef);
     
-    bigintmat *m = new bigintmat(3,3,coef);
-    for(int i=1; i<=3; i++) {
-        m->set(i,i,n_Init(1,coef), coef);
-    }
-    m->set(1,2,n_Init(1,coef), coef);
-    m->set(2,3,n_Init(1,coef), coef);
-    m->set(3,1,n_Init(1,coef), coef);
-    
-    m->Print();
-    PrintS("\n");
-    
-    lattice* l = new lattice(m);
-    //l->LLL();
-    bigintmat* enumer = NULL;// = new bigintmat(3,,coef);
-    enumer = l->enumerate_all(c);
-    //bigintmat *reduced = l->get_reduced_basis();
-    //reduced->Print();
-    if(enumer !=NULL){
-        enumer->transpose()->Print();
-        PrintS("\n");
-    }
-    PrintS("new number\n");
-    enumer = l->enumerate_next( c);
-    if(enumer !=NULL){
-        enumer->Print();
-        PrintS("\n");
-    }
-    PrintS("new number and bigintmat\n");
-    bigintmat* x= new bigintmat(3,1,coef);
-    x->set(2,1,n_Init(-4,coef), coef);
-    x->set(3,1,n_Init(1,coef), coef);
-    enumer = l->enumerate_next( c, x);
-    if(enumer !=NULL){
-        enumer->Print();
-        PrintS("\n");
-    }
-    for(int i=1;i<4;i++){
-        enumer = l->enumerate_next();
-        if(enumer !=NULL){
-            enumer->Print();
+    for(int t = 0; t < 10; t++) {
+        int matrix_size = rand() % 50 + 1;
+        if(matrix_size<2 ) matrix_size=2;
+        bigintmat * matrix = new bigintmat(matrix_size,matrix_size,coef);
+        for(int col =1; col <=matrix_size;col++){
+            for(int row =1; row <=matrix_size;row++){
+                number nom = n_Init(rand() % 4096 -2047,coef);
+                number den = n_Init(rand() % 1024 + 1,coef);
+                matrix->rawset(row,col,n_Div(nom,den,coef),coef);
+                n_Delete(&nom,coef);
+                n_Delete(&den,coef);
+            }
         }
-        PrintS("\n");
-    }
-    PrintS("new bigintmat\n");
-    x->set(3,1,n_Init(8,coef), coef);
-    enumer = l->enumerate_next(x);
-    if(enumer !=NULL){
-        enumer->Print();
-    }
-    PrintS("\n");
-    
         
-    delete l;   
+        cout << "\ni = " << t;
+        PrintS("\nInput:\n");
+        PrintS("\n");
+        
+        lattice * l = new lattice(matrix);
+        bigintmat * x = new bigintmat(matrix->cols(),1,coef);
+        x->rawset(matrix->cols()-1,1,n_Init(-1,coef),coef);
+        bigintmat * elem = l->enumerate_next(c,x);
+        
+        PrintS("Output:\n");
+        if(elem!=NULL){
+            //elem->Print();PrintS("\n");
+        } else {
+            PrintS("NULL\n");
+        }
+        delete x;
+        delete elem;
+        
+        PrintS("del lattice\n");
+        delete l;
+        delete matrix;
+    }//*/
+    n_Delete(&c,coef);
+    PrintS("\n");
 }
 
 

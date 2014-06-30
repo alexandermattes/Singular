@@ -7,7 +7,7 @@ number temp_test(number a);
 
 void test_LLL();
 
-void test_Enumerate();
+void test_Enumerate(coeffs coef);
 
 void test_Minkowski();
 

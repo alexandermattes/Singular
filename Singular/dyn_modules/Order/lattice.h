@@ -141,7 +141,7 @@ class lattice {
         bool LLL();
         
         //Cohen Chapter 2.6
-        bool LLL(number& c, bool trans_matrix=true, bool integral=false, bool independentVectors=false);
+        bool LLL(number& c, coeffs c_coef, bool trans_matrix=true, bool integral=false, bool independentVectors=false);
         
         bigintmat * get_basis();
         

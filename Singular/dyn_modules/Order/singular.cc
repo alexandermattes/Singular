@@ -267,10 +267,11 @@ static BOOLEAN lattice_Assign(leftv l, leftv r)
       omFree(ll->data);
       l->data=(char*)lattice_Copy((blackbox*)NULL, r->data);
     }
-  } else if (r->Typ() == BIGINTMAT_CMD) { // use matrix as lattice base
-    lattice * lat = new lattice((bigintmat*)r->Data(),false);
-//     omFree(IDDATA((idhdl)l->data));
-    l->data=(char*) lat;
+//   } else if (r->Typ() == BIGINTMAT_CMD) { // use matrix as lattice base
+//     bigintmat * basis = (bigintmat*)r->Data();
+//     lattice * lat = new lattice(basis,false);
+// //     omFree(IDDATA((idhdl)l->data));
+//     l->data=(char*) lat;
   } else {
     Werror("assign Type(%d) = Type(%d) not implemented",l->Typ(),r->Typ());
     return TRUE;
@@ -534,24 +535,21 @@ static BOOLEAN tempTest(leftv result, leftv arg)
   return FALSE;
 }
 
-// static BOOLEAN LLL(leftv result, leftv arg)
-// { 
-//   if( (arg == NULL) 
-//     ||(arg->Typ() != BIGINTMAT_CMD)) 
-//   {
-//     WerrorS("usage: LLL(bigintmat)");
-//   }
-//   bigintmat * a = (bigintmat *) arg->Data();
-//   
-//   lattice * l = new lattice(a);
-//   number c = NULL;
-//   l->LLL(c,false,true,true);
-//   bigintmat * reduced = l->get_reduced_basis();
-//   delete l;
-//   result->rtyp = BIGINTMAT_CMD;
-//   result->data = (void*) reduced;
-//   return FALSE;
-// }
+static BOOLEAN bimToCurrRing(leftv result, leftv arg)
+{ 
+  if( (arg == NULL) 
+    ||(arg->Typ() != BIGINTMAT_CMD)) 
+  {
+    WerrorS("usage: bimToCurrRing(bigintmat)");
+  }
+
+  bigintmat * in = (bigintmat *) arg->Data();  
+  bigintmat * out = bimChangeCoeff(in,currRing->cf);
+
+  result->rtyp = BIGINTMAT_CMD;
+  result->data = (void*) out;
+  return FALSE;
+}
 
 static BOOLEAN latticeFromBasis(leftv result, leftv arg)
 { 
@@ -595,7 +593,8 @@ static BOOLEAN LLL(leftv result, leftv arg)
   lattice * l = (lattice*) arg->Data();
 
   number c = NULL;
-  l->LLL(c,true,false,true);
+  l->LLL(c,NULL,true,false,true);
+//   l->LLL();
   result->rtyp = NONE;
   return FALSE;
 }
@@ -654,7 +653,7 @@ static BOOLEAN getGramMatrix(leftv result, leftv arg)
   }
   lattice * l = (lattice*) arg->Data();
 
-  bigintmat * gram = l->get_reduced_basis();
+  bigintmat * gram = l->get_gram_matrix();
   result->rtyp = BIGINTMAT_CMD;
   result->data = (void*) gram;
   return FALSE;
@@ -740,6 +739,12 @@ extern "C" int mod_init(SModulFunctions* psModulFunctions)
   
   psModulFunctions->iiAddCproc(
           (currPack->libname? currPack->libname: ""),
+          "bimToCurrRing",
+          FALSE, 
+          bimToCurrRing);
+    
+  psModulFunctions->iiAddCproc(
+          (currPack->libname? currPack->libname: ""),
           "latticeFromBasis",
           FALSE, 
           latticeFromBasis);
@@ -778,7 +783,7 @@ extern "C" int mod_init(SModulFunctions* psModulFunctions)
           (currPack->libname? currPack->libname: ""),
           "getGramMatrix",
           FALSE, 
-          getGramMatrix);
+          getGramMatrix); 
   
   module_help_main(
      (currPack->libname? currPack->libname: "NFOrder"),// the library name,
