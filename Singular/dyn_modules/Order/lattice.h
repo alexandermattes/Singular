@@ -173,10 +173,14 @@ inline number scalarproduct(bigintmat * a, bigintmat * b);
 
 
 //minkowski
-bigintmat * minkowksi(bigintmat ** elementarray,int size_elementarray, number * poly,int deg, coeffs coef, int precision);
+lattice * minkowski(bigintmat * elements, number * poly,int deg, coeffs coef, int precision);
 bool IsReal(number a, coeffs coef);
 bool ImagGreaterZero(number a, coeffs coef);
 number squareroot(number a, coeffs coef, int iteration);// iteration in Heron algorithm
+
+//get nice polynom for field over Q
+bool get_nice_poly(number * poly_in, int deg_in, number * poly_out);
+bool poly_is_primitive(number * poly,int deg);
 
 
 #endif

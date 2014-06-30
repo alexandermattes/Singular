@@ -124,7 +124,7 @@ void test_LLL() {
 
     //Random matrices
     srand(1234);
-    for(int t = 0; t < 100; t++) {
+    for(int t = 0; t < 10; t++) {
         int matrix_size = rand() % 10 + 1;
         bigintmat * matrix = new bigintmat(matrix_size,matrix_size,coef);
         matrix->one();
@@ -258,78 +258,78 @@ void test_Enumerate(coeffs coef) {
 
 
 void test_Minkowski() {
-    coeffs coef = nInitChar(n_Q,NULL);
-
-    PrintS("Test Minkowski\n");
-    PrintS("Elements\n");
-    bigintmat ** elementarray = new bigintmat*[4];
-    elementarray[0] = new bigintmat(4,1,coef);
-    elementarray[1] = new bigintmat(4,1,coef);
-    elementarray[2] = new bigintmat(4,1,coef);
-    elementarray[3] = new bigintmat(4,1,coef);
-    elementarray[0]->rawset(2,1,n_Init(1,coef),coef);
-    
-    elementarray[1]->rawset(1,1,n_Init(3,coef),coef);
-    elementarray[1]->rawset(2,1,n_Init(7,coef),coef);
-    elementarray[1]->rawset(3,1,n_Init(13,coef),coef);
-    
-    elementarray[2]->rawset(1,1,n_Init(-1,coef),coef);
-    elementarray[2]->rawset(2,1,n_Init(42,coef),coef);
-    elementarray[2]->rawset(3,1,n_Init(-5,coef),coef);
-    elementarray[2]->rawset(4,1,n_Init(21,coef),coef);
-    
-    elementarray[3]->rawset(1,1,n_Init(2,coef),coef);
-    elementarray[3]->rawset(2,1,n_Init(-1,coef),coef);
-    elementarray[3]->rawset(3,1,n_Init(-5,coef),coef);
-    elementarray[3]->rawset(4,1,n_Init(1,coef),coef);
-    /// poly with real and imag roots
-    PrintS("polynomial\n");
-    number * poly = new number[5];//(number *)omAlloc( (5) * sizeof( number ) );//new number[5];
-    //poly[0] = n_Init(6,coef);
-    //poly[1] = n_Init(0,coef);
-    //poly[2] = n_Init(5,coef);//positiv imaginär, negatic reelle wurzeln
-    //poly[3] = n_Init(0,coef);
-    //poly[4] = n_Init(1,coef);
-    poly[0] = n_Init(-1,coef);
-    poly[1] = n_Init(0,coef);
-    poly[2] = n_Init(0,coef);
-    poly[3] = n_Init(3,coef);
-    poly[4] = n_Init(1,coef);
-    int prec = 42;
-    //coeffs rea = nInitChar(n_long_R,NULL);
-    //setGMPFloatDigits( prec, prec);
-    //number abc = n_Init(1,rea);
-    //abc = n_Div(abc,n_Init(3333,rea),rea);
-    //n_Print(abc,rea);
-    //PrintS("\n");
-    bigintmat * gitter = NULL;PrintS("Call function\n");
-    gitter = minkowksi(elementarray,4,poly,4,coef,prec);
-    if(gitter !=NULL){
-        gitter->Print();
-        PrintS("\n");
-        //cout << "CoeffType of gitter: " << getCoeffType(gitter->basecoeffs()) << '\n';
-    }
-    //*/
-}
-
-
-
-
-void memorytest() {
-    coeffs coef = nInitChar(n_Q,0);
-    
-    int ar[] = {1,-1,3,1,0,5,1,2,6};
-    bigintmat * m = new bigintmat(3,3,coef);
-    for(int i=0; i<9; i++) {
-        m->set(i,n_Init(ar[i],coef), coef);
-    }
-    
-    for(int i=0; i<100000000; i++) {
-        lattice * l = new lattice(m);
-        l->LLL();
-//         bigintmat * reduced = l->get_reduced_basis();
-        delete l;
-    }
+//     coeffs coef = nInitChar(n_Q,NULL);
+// 
+//     PrintS("Test Minkowski\n");
+//     PrintS("Elements\n");
+//     bigintmat ** elementarray = new bigintmat*[4];
+//     elementarray[0] = new bigintmat(4,1,coef);
+//     elementarray[1] = new bigintmat(4,1,coef);
+//     elementarray[2] = new bigintmat(4,1,coef);
+//     elementarray[3] = new bigintmat(4,1,coef);
+//     elementarray[0]->rawset(2,1,n_Init(1,coef),coef);
+//     
+//     elementarray[1]->rawset(1,1,n_Init(3,coef),coef);
+//     elementarray[1]->rawset(2,1,n_Init(7,coef),coef);
+//     elementarray[1]->rawset(3,1,n_Init(13,coef),coef);
+//     
+//     elementarray[2]->rawset(1,1,n_Init(-1,coef),coef);
+//     elementarray[2]->rawset(2,1,n_Init(42,coef),coef);
+//     elementarray[2]->rawset(3,1,n_Init(-5,coef),coef);
+//     elementarray[2]->rawset(4,1,n_Init(21,coef),coef);
+//     
+//     elementarray[3]->rawset(1,1,n_Init(2,coef),coef);
+//     elementarray[3]->rawset(2,1,n_Init(-1,coef),coef);
+//     elementarray[3]->rawset(3,1,n_Init(-5,coef),coef);
+//     elementarray[3]->rawset(4,1,n_Init(1,coef),coef);
+//     /// poly with real and imag roots
+//     PrintS("polynomial\n");
+//     number * poly = new number[5];//(number *)omAlloc( (5) * sizeof( number ) );//new number[5];
+//     //poly[0] = n_Init(6,coef);
+//     //poly[1] = n_Init(0,coef);
+//     //poly[2] = n_Init(5,coef);//positiv imaginär, negatic reelle wurzeln
+//     //poly[3] = n_Init(0,coef);
+//     //poly[4] = n_Init(1,coef);
+//     poly[0] = n_Init(-1,coef);
+//     poly[1] = n_Init(0,coef);
+//     poly[2] = n_Init(0,coef);
+//     poly[3] = n_Init(3,coef);
+//     poly[4] = n_Init(1,coef);
+//     int prec = 42;
+//     //coeffs rea = nInitChar(n_long_R,NULL);
+//     //setGMPFloatDigits( prec, prec);
+//     //number abc = n_Init(1,rea);
+//     //abc = n_Div(abc,n_Init(3333,rea),rea);
+//     //n_Print(abc,rea);
+//     //PrintS("\n");
+//     bigintmat * gitter = NULL;PrintS("Call function\n");
+//     gitter = minkowksi(elementarray,4,poly,4,coef,prec);
+//     if(gitter !=NULL){
+//         gitter->Print();
+//         PrintS("\n");
+//         //cout << "CoeffType of gitter: " << getCoeffType(gitter->basecoeffs()) << '\n';
+//     }
+//     //*/
+// }
+// 
+// 
+// 
+// 
+// void memorytest() {
+//     coeffs coef = nInitChar(n_Q,0);
+//     
+//     int ar[] = {1,-1,3,1,0,5,1,2,6};
+//     bigintmat * m = new bigintmat(3,3,coef);
+//     for(int i=0; i<9; i++) {
+//         m->set(i,n_Init(ar[i],coef), coef);
+//     }
+//     
+//     for(int i=0; i<100000000; i++) {
+//         lattice * l = new lattice(m);
+//         l->LLL();
+// //         bigintmat * reduced = l->get_reduced_basis();
+//         delete l;
+//     }
 }
 
 int average_length(bigintmat * m) {

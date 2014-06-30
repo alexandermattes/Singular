@@ -9,6 +9,7 @@
 #include <utility>
 #include "kernel/numeric/mpr_numeric.h"
 #include "libpolys/coeffs/gnumpc.cc"
+#include "nforder.h"
 
 
 
@@ -222,15 +223,15 @@ void lattice::delete_LLL_computations(){
 void lattice::DEBUG_LLL(){
     DEBUG_BLOCK(true);
     
-//     if(b != NULL) {
-//         for(int i=1; i<=n;i++){
-//             if(b[i] != NULL) {
-//                 std::cout<<"b["<<i<<"]: ";
-//                 b[i]->Print();
-//                 Print("\n");
-//             }
-//         }
-//     }
+    if(b != NULL) {
+        for(int i=1; i<=n;i++){
+            if(b[i] != NULL) {
+                std::cout<<"b["<<i<<"]: ";
+                b[i]->Print();
+                Print("\n");
+            }
+        }
+    }
     
     if(b_star != NULL) {
         for(int i=1; i<=n;i++){
@@ -242,34 +243,34 @@ void lattice::DEBUG_LLL(){
         }
     }
     
-//     if(B != NULL) {
-//         for(int i=1; i<=n;i++){
-//             if(B[i] != NULL) {
-//                 std::cout<<"B["<<i<<"]: ";
-//                 n_Print(B[i],coef);
-//                 Print("\n");
-//             }
-//         }  
-//     }
+    if(B != NULL) {
+        for(int i=1; i<=n;i++){
+            if(B[i] != NULL) {
+                std::cout<<"B["<<i<<"]: ";
+                n_Print(B[i],coef);
+                Print("\n");
+            }
+        }  
+    }
     
-//     if(d != NULL) {
-//         for(int i=1; i<=n;i++){
-//             if(d[i] != NULL) {
-//                 std::cout<<"d["<<i<<"]: ";
-//                 n_Print(d[i],coef);
-//                 Print("\n");
-//             }
-//         }  
-//     }
+    if(d != NULL) {
+        for(int i=1; i<=n;i++){
+            if(d[i] != NULL) {
+                std::cout<<"d["<<i<<"]: ";
+                n_Print(d[i],coef);
+                Print("\n");
+            }
+        }  
+    }
     
-//     if(my != NULL)
-//         DEBUG_BIM(my);
+    if(my != NULL)
+        DEBUG_BIM(my);
     
-//     if(lambda != NULL)
-//         DEBUG_BIM(lambda);
+    if(lambda != NULL)
+        DEBUG_BIM(lambda);
     
-//     if(H != NULL)
-//         DEBUG_BIM(H);
+    if(H != NULL)
+        DEBUG_BIM(H);
     
 //     getchar();
 }
@@ -1649,21 +1650,15 @@ number scalarproduct(bigintmat * a, bigintmat * b) {
 ///////////////////////////////////////
 //         Minkowski map            ///
 ///////////////////////////////////////
-bigintmat * minkowksi(bigintmat ** elementarray,int size_elementarray, number * poly,int deg, coeffs coef, int precision){
+lattice * minkowski(bigintmat * basiselements, number * poly,int deg, coeffs coef, int precision){
     DEBUG_BLOCK(true);
     DEBUG_PRINT(("Begin Minkowski map\n"));
     DEBUG_PRINT(("Input check\n"));
-    if(elementarray == NULL || poly == NULL || coef != elementarray[0]->basecoeffs()){
+    if(basiselements == NULL || poly == NULL || coef != basiselements->basecoeffs()){
         WerrorS("wrong input!\n");
         return NULL;
     }
     
-    for(int i=1;i<size_elementarray;i++){
-        if(coef != elementarray[0]->basecoeffs()){
-            WerrorS("wrong input!\n");
-            return NULL;
-        }
-    }
     
     //char = 0
     if ( !(nCoeff_is_Ring_Z(coef) || nCoeff_is_R(coef) || nCoeff_is_Q(coef) ||
@@ -1680,28 +1675,32 @@ bigintmat * minkowksi(bigintmat ** elementarray,int size_elementarray, number * 
     if(precision<6){
         precision = 6;
     }
+    if(precision>32767){
+        precision = 32767;
+    }
     if ( !(nCoeff_is_R(coef) || nCoeff_is_long_R(coef) || nCoeff_is_long_C(coef)) ){
         setGMPFloatDigits( precision+6,precision+6);
     }
     
     DEBUG_PRINT(("find roots\n"));
     ring CurrOldRing = rCopy(currRing);//need to change currRing, because rootContainer uses the coef of it
-    char* n[] = {(char*)"i"};
+    char* n[] = {(char*)"x"};///
     ring newring = rDefault(coef, 1, n);
     rChangeCurrRing(newring);
     DEBUG_PRINT(("initialize rootContainer\n"));
+    number * rootpoly = new number[deg+1];//doesn't need to be deleted since rootContaine delete it...
+    for(int i=0;i<=deg;i++){
+        rootpoly[i] = n_Copy(poly[i],coef);
+    }
     rootContainer * rootcont= new rootContainer();
-    rootcont->fillContainer( poly, NULL, 1, deg, rootContainer::onepoly, 1 );///
-    rootcont->solver( precision+12);
+    rootcont->fillContainer( rootpoly, NULL, 1, deg, rootContainer::onepoly, 1 );
+    rootcont->solver( 1);
     int number_roots = rootcont ->getAnzRoots();
     if(number_roots != deg){
         WerrorS("something went wrong: \n\tnot all roots found\n");
         return NULL;
     }
-    LongComplexInfo paramComp;
-    paramComp.float_len = si_min (precision+6, 32767);
-    paramComp.float_len2 = si_min (precision+8, 32767);
-    paramComp.par_name=(const char*)"i";
+    LongComplexInfo paramComp = {si_min (precision+6, 32767),si_min (precision+8, 32767),(const char*)"i"};
     
     coeffs comp = nInitChar(n_long_C, &paramComp);
     
@@ -1720,37 +1719,31 @@ bigintmat * minkowksi(bigintmat ** elementarray,int size_elementarray, number * 
         }
         n_Delete(&a,comp);
     }
-    rChangeCurrRing(CurrOldRing);
     DEBUG_PRINT(("delete some variables\n"));
+    delete rootcont;
+    rChangeCurrRing(CurrOldRing);
     rDelete(newring);
-    delete &n;
-    //delete rootcont;DEBUG_PRINT(("can't delete rootcontainer rootcont\n"));
     DEBUG_VAR(r1);
     DEBUG_VAR(r2);
     for(int j=0;j<r2;j++){
         roots[r1+j]= n_Copy(complexroots[j],comp);
         n_Delete(&complexroots[j],comp);
     }
-    delete complexroots;
+    delete[] complexroots;
     DEBUG_PRINT(("map elementarray to complex\n"));
-    bigintmat ** elements = new bigintmat*[size_elementarray];
-    for(int i=0;i<size_elementarray;i++){
-        elements[i] = bimChangeCoeff(elementarray[i],comp);
-    }
+    bigintmat * elements =  bimChangeCoeff(basiselements,comp);
     DEBUG_PRINT(("generate output matrix\n"));
     DEBUG_PRINT(("real part\n"));
-    bigintmat * complexmat = new bigintmat(r1+2*r2,size_elementarray,comp);
+    bigintmat * complexmat = new bigintmat(r1+2*r2, elements->cols(), comp);
     for(int i=1; i<= r1; i++){
-        number pot = n_Init(1,comp);
-        for(int l=0; l< deg; l++){
-            for(int j=0; j<size_elementarray;j++){
-                number mult = n_Mult(pot,elements[j]->view(l),comp);
-                complexmat->rawset(i,j+1,n_Add(complexmat->view(i,j+1),mult,comp),comp);
-                n_Delete(&mult,comp);
+        for(int l=deg; l>0; l--){
+            for(int j=1; j<=elements->cols();j++){
+                number val = complexmat->get(i,j+1);
+                n_InpMult(val,roots[i-1],comp);
+                complexmat->rawset(i,j+1,n_Add(val,elements->view(j,l),comp),comp);
+                n_Delete(&val,comp);
             }
-            n_InpMult(pot, roots[i-1],comp);
         }
-        n_Delete(&pot,comp);
     }
     DEBUG_PRINT(("imaginary part\n"));
     if(r2>0){
@@ -1758,43 +1751,40 @@ bigintmat * minkowksi(bigintmat ** elementarray,int size_elementarray, number * 
         number sqrt2 = squareroot(two,comp,precision+10);
         n_Delete(&two,comp);
         for(int i=1; i<= r2; i++){
-            number pot = n_Init(1,comp);
-            for(int l=0; l< deg; l++){
-                for(int j=0; j<size_elementarray;j++){
-                    number mult = n_Mult(pot,elements[j]->view(l),comp);
-                    complexmat->rawset(r1+2*i,j+1,n_Add(complexmat->view(r1+2*i,j+1),mult,comp),comp);
-                    n_Delete(&mult,comp);
+            for(int l=deg; l>0; l--){
+                for(int j=1; j<=elements->cols();j++){
+                    number val = complexmat->get(r1+2*i,j+1);
+                    n_InpMult(val,roots[i-1],comp);
+                    complexmat->rawset(r1+2*i,j+1,n_Add(val,elements->view(j,l),comp),comp);
+                    n_Delete(&val,comp);
                 }
-                n_InpMult(pot, roots[i-1],comp);
             }
-            n_Delete(&pot,comp);
-            for(int j=1;j<=size_elementarray;j++){
-                complexmat->set(r1+2*i,j,n_Mult(complexmat->view(r1+2*i,j),sqrt2,comp),comp);
-                complexmat->set(r1+2*i-1,j,ngcRePart(complexmat->view(r1+2*i,j),comp),comp);
-                complexmat->set(r1+2*i,j,ngcImPart(complexmat->view(r1+2*i,j),comp),comp);
+            for(int j=1;j<=elements->cols();j++){
+                complexmat->rawset(r1+2*i,j,n_Mult(complexmat->view(r1+2*i,j),sqrt2,comp),comp);
+                complexmat->rawset(r1+2*i-1,j,ngcRePart(complexmat->view(r1+2*i,j),comp),comp);
+                complexmat->rawset(r1+2*i,j,ngcImPart(complexmat->view(r1+2*i,j),comp),comp);
             }
         }
+        n_Delete(&two,comp);
+        n_Delete(&sqrt2,comp);
     }
     DEBUG_PRINT(("delete Variables\n"));
-    for(int i=0;i<size_elementarray;i++){
-        delete elements[i];
-    }
     delete elements;
     for(int i=0;i<r1+r2;i++){
         n_Delete(&roots[i],comp);
     }
-    delete roots;
+    delete[] roots;
     
     DEBUG_PRINT(("to real\n"));
-    LongComplexInfo paramReal;
-    paramReal.float_len = si_min (precision, 32767);
-    paramReal.float_len2 = si_min (precision, 32767);
-    paramReal.par_name=(const char*)"i";
+    LongComplexInfo paramReal = {si_min (precision, 32767), si_min (precision, 32767), (const char*)"i"};
     coeffs real = nInitChar(n_long_R, &paramReal);
-    //setGMPFloatDigits( precision, precision);
     bigintmat * realmat = bimChangeCoeff(complexmat,real);
     delete complexmat;
-    return realmat;
+    nKillChar(comp);
+    
+    lattice * latticeNF = new lattice(realmat);
+    delete realmat;
+    return latticeNF;
 }
 
 bool IsReal(number a, coeffs coef){ //Im(a)==0
@@ -1829,5 +1819,62 @@ number squareroot(number a, coeffs coef, int prec){
         n_Delete(&xn1,coef);
         n_Delete(&xn2,coef);
     }
+    n_Delete(&two,coef);
     return xn;
+}
+
+///////////////////////////////////////
+//       Get nice Polynomial        ///
+///////////////////////////////////////
+bool get_nice_poly(number * poly_in, int deg, number * poly_out, coeffs coef){
+    //primes<1000
+    nforder * maxord;//order from poly_in
+    int primes_1000[] = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233, 239, 241, 251, 257, 263, 269, 271, 277, 281, 283, 293, 307, 311, 313, 317, 331, 337, 347, 349, 353, 359, 367, 373, 379, 383, 389, 397, 401, 409, 419, 421, 431, 433, 439, 443, 449, 457, 461, 463, 467, 479, 487, 491, 499, 503, 509, 521, 523, 541, 547, 557, 563, 569, 571, 577, 587, 593, 599, 601, 607, 613, 617, 619, 631, 641, 643, 647, 653, 659, 661, 673, 677, 683, 691, 701, 709, 719, 727, 733, 739, 743, 751, 757, 761, 769, 773, 787, 797, 809, 811, 821, 823, 827, 829, 839, 853, 857, 859, 863, 877, 881, 883, 887, 907, 911, 919, 929, 937, 941, 947, 953, 967, 971, 977, 983, 991, 997};
+    static int size_primes_1000 = 168;
+    for(int i=0;i<size_primes_1000;i++){
+        nforder * temp = maxord;
+        number p = n_Init(primes_1000[i],coef);
+        maxord = pmaximal(temp, p);
+        n_Delete(&p,coef);
+        delete temp;
+    }
+    bigintmat * basis = maxord->getBasis();
+    number three = n_Init(3,coef);
+    number four = n_Init(4,coef);
+    number c = n_Div(three,four,coef);
+    n_Delete(&three,coef);
+    n_Delete(&four,coef);
+    int precision = 42;//the answer to life, the universe and everything is always a good start
+    lattice * latticeNF = minkowski(basis,poly_in,deg,coef,precision);
+    while(latticeNF->LLL(c,false,false,true) && precision < 32767){
+        delete latticeNF;
+        precision = precision +5;
+        latticeNF = minkowski(basis,poly_in,deg,coef,precision);
+    }
+    n_Delete(&c,coef);
+    
+    bigintmat * LLLbasis = latticeNF->get_reduced_basis();
+    poly_out = (number *)omAlloc(sizeof(number)*deg);
+    for(int i=0;i<deg;i++){
+        poly_out[i] = LLLbasis->get(i+1,1);
+    }
+    if(poly_is_primitive(poly_out,deg)){
+        delete latticeNF;
+        delete LLLbasis;
+        return true;
+    }
+    delete LLLbasis;
+    
+    
+    //None found, so delete unused stuff
+    for(int i=0;i<deg;i++){
+        n_Delete(&poly_out[i],coef);
+    }
+    omFreeSize((ADDRESS)poly_out, sizeof(number)*deg);
+    delete latticeNF;
+    return false;
+}
+
+bool poly_is_primitive(number * poly,int deg){
+    return true;
 }
