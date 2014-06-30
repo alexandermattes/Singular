@@ -599,6 +599,28 @@ static BOOLEAN LLL(leftv result, leftv arg)
   return FALSE;
 }
 
+static BOOLEAN getLatticeElement(leftv result, leftv arg)
+{ 
+  if( (arg == NULL) 
+    ||(arg->Typ() != lattice_id)) 
+  {
+    WerrorS("usage: getLatticeElement(lattice, bigintmat)");
+  }
+  lattice * l = (lattice*) arg->Data();
+  arg = arg->next;
+  if( (arg == NULL) 
+    ||(arg->Typ() != BIGINTMAT_CMD)) 
+  {
+    WerrorS("usage: enumerateAll(lattice, number)");
+  }
+  bigintmat * in = ((bigintmat *)arg->Data());
+  bigintmat * enumeration = l->get_lattice_element(in);
+  result->rtyp = BIGINTMAT_CMD;
+  result->data = (void*) enumeration;
+  delete in;
+  return FALSE;
+}
+
 static BOOLEAN getBasis(leftv result, leftv arg)
 { 
   if( (arg == NULL) 
@@ -664,10 +686,15 @@ static BOOLEAN enumerateAll(leftv result, leftv arg)
   if( (arg == NULL) 
     ||(arg->Typ() != lattice_id)) 
   {
-    WerrorS("usage: getGramMatrix(lattice)");
+    WerrorS("usage: enumerateAll(lattice, number)");
   }
   lattice * l = (lattice*) arg->Data();
   arg = arg->next;
+  if( (arg == NULL) 
+    ||(arg->Typ() != NUMBER_CMD)) 
+  {
+    WerrorS("usage: enumerateAll(lattice, number)");
+  }
   number c = ((number)arg->Data());
   bigintmat * enumeration = l->enumerate_all(c);
   result->rtyp = BIGINTMAT_CMD;
@@ -675,6 +702,50 @@ static BOOLEAN enumerateAll(leftv result, leftv arg)
   return FALSE;
 }
 
+static BOOLEAN enumerateNext(leftv result, leftv arg)
+{ 
+  if( (arg == NULL) 
+    ||(arg->Typ() != lattice_id)) 
+  {
+    WerrorS("usage: enumerateNext(lattice [, number] [,bigintmat])");
+  }
+  lattice * l = (lattice*) arg->Data();
+  arg = arg->next;
+  bigintmat * enumeration = NULL;
+  
+  if( (arg == NULL) || (arg->Typ() != NUMBER_CMD) || (arg->Typ() != BIGINTMAT_CMD) ) 
+  {
+    enumeration = l->enumerate_next();
+  } else {
+    if(arg->Typ() == NUMBER_CMD)
+    {
+      number c = ((number)arg->Data());
+      arg = arg->next;
+      if( (arg == NULL) || (arg->Typ() != BIGINTMAT_CMD) ) 
+      {
+        enumeration = l->enumerate_next(c);
+        enumeration->Print();
+      } else {
+        bigintmat * in = (bigintmat *) arg->Data();
+        enumeration = l->enumerate_next(c,in);
+      }
+    } else {
+      bigintmat * in = (bigintmat *) arg->Data();
+      enumeration = l->enumerate_next(in);
+    }
+  }
+  
+  //if(enumeration == NULL)
+  //{
+    //bigintmat * basis =l->get_basis();
+    //enumeration = new bigintmat(basis->rows(),1,basis->basecoeffs());
+    //delete basis;
+  //}
+  
+  result->rtyp = BIGINTMAT_CMD;
+  result->data = (void*) enumeration;
+  return FALSE;
+}
 
 extern "C" int mod_init(SModulFunctions* psModulFunctions)
 {
@@ -779,6 +850,12 @@ extern "C" int mod_init(SModulFunctions* psModulFunctions)
   
   psModulFunctions->iiAddCproc(
           (currPack->libname? currPack->libname: ""),
+          "getLatticeElement",
+          FALSE, 
+          getLatticeElement);
+  
+  psModulFunctions->iiAddCproc(
+          (currPack->libname? currPack->libname: ""),
           "getBasis",
           FALSE, 
           getBasis);
@@ -806,6 +883,12 @@ extern "C" int mod_init(SModulFunctions* psModulFunctions)
           "enumerateAll",
           FALSE, 
           enumerateAll);
+  
+  psModulFunctions->iiAddCproc(
+          (currPack->libname? currPack->libname: ""),
+          "enumerateNext",
+          FALSE, 
+          enumerateNext);
   
   module_help_main(
      (currPack->libname? currPack->libname: "NFOrder"),// the library name,
