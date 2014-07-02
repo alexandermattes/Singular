@@ -1,6 +1,9 @@
 #ifndef LATTICE_HPP
 #define LATTICE_HPP
 
+#include <polys/monomials/p_polys.h>
+
+
 // Algorithms based on chapter 2.6 of 
 // "A course in computational algebraic numbertheory" by Henry Cohen
 class lattice {
@@ -179,8 +182,12 @@ bool ImagGreaterZero(number a, coeffs coef);
 number squareroot(number a, coeffs coef, int iteration);// iteration in Heron algorithm
 
 //get nice polynom for field over Q
-bool get_nice_poly(number * poly_in, int deg_in, number * poly_out);
-bool poly_is_primitive(number * poly,int deg);
+poly get_nice_poly(poly polynom_in);
+bool is_primitive(number * poly,int deg);
 
+
+//poly to number array and vice versa
+int poly2numbers(poly gls,number * pcoeffs,ring polyring, coeffs coef);
+poly numbers2poly(number * univpol, int deg, coeffs coef, ring polyring);
 
 #endif

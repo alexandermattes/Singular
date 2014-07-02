@@ -11,6 +11,10 @@
 #include "libpolys/coeffs/gnumpc.cc"
 #include "nforder.h"
 
+#include <polys/monomials/p_polys.h>
+
+#include <Singular/ipshell.h>
+
 
 
 
@@ -1826,9 +1830,21 @@ number squareroot(number a, coeffs coef, int prec){
 ///////////////////////////////////////
 //       Get nice Polynomial        ///
 ///////////////////////////////////////
-bool get_nice_poly(number * poly_in, int deg, number * poly_out, coeffs coef){
+poly get_nice_poly(poly polynom){
     //primes<1000
-    nforder * maxord;//order from poly_in
+    idhdl EquationOrder=ggetid("EquationOrder");
+    leftv arg;
+    arg->rtyp = POLY_CMD;
+    arg->data = (void*) polynom;
+    if((EquationOrder == NULL) || (iiMake_proc(EquationOrder,NULL,arg)) ){//need to be in package nforder.so
+        WerrorS("No equationorder\n");
+    }
+    nforder * maxord = (nforder * ) iiRETURNEXPR.Data();//order from poly
+    iiRETURNEXPR.CleanUp();
+    number * poly_in;
+    coeffs coef = currRing->cf;
+    int deg = poly2numbers(polynom,poly_in,currRing,coef);
+    
     int primes_1000[] = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233, 239, 241, 251, 257, 263, 269, 271, 277, 281, 283, 293, 307, 311, 313, 317, 331, 337, 347, 349, 353, 359, 367, 373, 379, 383, 389, 397, 401, 409, 419, 421, 431, 433, 439, 443, 449, 457, 461, 463, 467, 479, 487, 491, 499, 503, 509, 521, 523, 541, 547, 557, 563, 569, 571, 577, 587, 593, 599, 601, 607, 613, 617, 619, 631, 641, 643, 647, 653, 659, 661, 673, 677, 683, 691, 701, 709, 719, 727, 733, 739, 743, 751, 757, 761, 769, 773, 787, 797, 809, 811, 821, 823, 827, 829, 839, 853, 857, 859, 863, 877, 881, 883, 887, 907, 911, 919, 929, 937, 941, 947, 953, 967, 971, 977, 983, 991, 997};
     static int size_primes_1000 = 168;
     for(int i=0;i<size_primes_1000;i++){
@@ -1839,14 +1855,10 @@ bool get_nice_poly(number * poly_in, int deg, number * poly_out, coeffs coef){
         delete temp;
     }
     bigintmat * basis = maxord->getBasis();
-    number three = n_Init(3,coef);
-    number four = n_Init(4,coef);
-    number c = n_Div(three,four,coef);
-    n_Delete(&three,coef);
-    n_Delete(&four,coef);
     int precision = 42;//the answer to life, the universe and everything is always a good start
     lattice * latticeNF = minkowski(basis,poly_in,deg,coef,precision);
-    while(latticeNF->LLL(c,coef,false,false,true) && precision < 32767){
+    number c = NULL;
+    while(latticeNF->LLL(c,NULL,false,false,true) && precision < 32767){
         delete latticeNF;
         precision = precision +5;
         latticeNF = minkowski(basis,poly_in,deg,coef,precision);
@@ -1854,14 +1866,14 @@ bool get_nice_poly(number * poly_in, int deg, number * poly_out, coeffs coef){
     n_Delete(&c,coef);
     
     bigintmat * LLLbasis = latticeNF->get_reduced_basis();
-    poly_out = (number *)omAlloc(sizeof(number)*deg);
+    number * poly_out = (number *)omAlloc(sizeof(number)*deg);
     for(int i=0;i<deg;i++){
         poly_out[i] = LLLbasis->get(i+1,1);
     }
-    if(poly_is_primitive(poly_out,deg)){
+    if(is_primitive(poly_out,deg)){
         delete latticeNF;
         delete LLLbasis;
-        return true;
+        return NULL;//correct
     }
     delete LLLbasis;
     
@@ -1872,9 +1884,79 @@ bool get_nice_poly(number * poly_in, int deg, number * poly_out, coeffs coef){
     }
     omFreeSize((ADDRESS)poly_out, sizeof(number)*deg);
     delete latticeNF;
-    return false;
+    return NULL;
 }
 
-bool poly_is_primitive(number * /*poly*/,int /*deg*/){
+bool is_primitive(number * /*poly*/,int /*deg*/){
     return true;
 }
+
+int poly2numbers(poly gls,number * pcoeffs,ring polyring, coeffs coef){
+    if(gls == NULL){
+        WerrorS("No Input!");
+        return -1;
+    }
+    
+    int ldummy;
+    int deg = polyring->pLDeg( gls, &ldummy, polyring );
+    int vpos = 0;
+    poly piter;
+    if ( rVar(polyring) > 1 ){
+        piter=gls;
+        for (int i= 1; i <= rVar(polyring); i++ )
+            if ( p_GetExp( piter, i, polyring) ) {
+                vpos= i;
+                break;
+            }
+        while ( piter ){
+            for (int i= 1; i <= rVar(polyring); i++ ) {
+                if ( (vpos != i) && (p_GetExp( piter, i, polyring) != 0) ) {
+                    WerrorS("The input polynomial must be univariate!");
+                    return -1;
+                }
+            }
+            pIter( piter );
+        }
+    }
+    piter = gls;
+    pcoeffs = (number *)omAlloc( (deg+1) * sizeof( number ) );
+    nMapFunc f = n_SetMap(polyring->cf,coef);
+    for (int i= deg; i >= 0; i-- ) {
+        if ( piter && pTotaldegree(piter) == i ) {
+            number temp = n_Copy( p_GetCoeff( piter, polyring), polyring->cf );
+            pcoeffs[i]= f(temp,polyring->cf,coef);
+            n_Delete(&temp,polyring->cf);
+            pIter( piter );
+        } else {
+            pcoeffs[i]= n_Init(0,coef);
+        }
+    }
+    return deg;
+}
+
+poly numbers2poly(number * univpol, int deg, coeffs coef, ring polyring){
+    poly result= NULL;
+    poly ppos;
+    nMapFunc f = n_SetMap(coef,polyring->cf);
+
+    for ( long i= deg; i >= 0; i-- ){
+        if ( univpol[i] ){
+            poly p= p_One(polyring);
+            //pSetExp( p, var+1, i);
+            p_SetExp( p, 1, i, polyring);
+            p_SetCoeff( p, f(univpol[i],coef,polyring->cf),polyring);
+            p_Setm( p ,polyring);
+            if (result) {
+                ppos->next=p;
+                ppos=ppos->next;
+            } else {
+                result=p;
+                ppos=p;
+            }
+        }
+    }
+    if (result!=NULL) p_Setm( result, polyring );
+
+    return result;
+}
+
