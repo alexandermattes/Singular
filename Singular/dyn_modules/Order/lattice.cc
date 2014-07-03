@@ -1218,10 +1218,10 @@ bigintmat * lattice::enumerate_all(number a){
     DEBUG_PRINT(("generate bigintmat for return\n"));
     bigintmat* elements = new bigintmat(m,1,coef);
     
-    nMapFunc f = n_SetMap(fieldcoef, coef);
+    
     for(unsigned i=1; i<elementsvector.size();i++){
         //elements->appendCol(bimChangeCoeff(elementsvector[i].second,coef));
-        bigintmat * temp = f(elementsvector[i].second,fieldcoef, coef);
+        bigintmat * temp = bimChangeCoeff(elementsvector[i].second, coef);
         elements->appendCol(temp);
         delete temp;
     }
@@ -1290,8 +1290,7 @@ bigintmat * lattice::enumerate_next(number a, bigintmat * in){//next element x w
     if(n_Equal(minusOne,norm,fieldcoef)){
         out = NULL;
     } else {
-        f = n_SetMap(fieldcoef, coef);
-        out = f(x, fieldcoef, coef);
+        out = bimChangeCoeff(x, coef);
     }
     n_Delete(&minusOne, fieldcoef);
     n_Delete(&norm, fieldcoef);
@@ -1363,8 +1362,7 @@ bigintmat * lattice::enumerate_next(){
     }
     n_Delete(&minusOne,fieldcoef);
     n_Delete(&norm,fieldcoef);
-    nMapFunc f = n_SetMap(fieldcoef, coef);
-    bigintmat * out = f(x, fieldcoef, coef);
+    bigintmat * out = bimChangeCoeff(x, coef);
     return out;
 }
 
@@ -1864,10 +1862,10 @@ poly get_nice_poly(poly polynom){
     }
     
     bigintmat * basis = bimChangeCoeff(maxord->viewBasis(),coef);
-    nMap f = n_SetMap(currRing->cf,coef);
+    nMapFunc f = n_SetMap(currRing->cf,coef);
     number temp = maxord->getDiv();
     number temp2 = f(temp,currRing->cf,coef);
-    basis->skaldiv(temp2,coef);
+    basis->skaldiv(temp2);
     n_Delete(&temp,currRing->cf);
     n_Delete(&temp2,coef);
     
