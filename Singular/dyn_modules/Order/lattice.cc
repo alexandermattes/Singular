@@ -1218,9 +1218,10 @@ bigintmat * lattice::enumerate_all(number a){
     DEBUG_PRINT(("generate bigintmat for return\n"));
     bigintmat* elements = new bigintmat(m,1,coef);
     
+    nMapFunc f = n_SetMap(fieldcoef, coef);
     for(unsigned i=1; i<elementsvector.size();i++){
         //elements->appendCol(bimChangeCoeff(elementsvector[i].second,coef));
-        bigintmat * temp = get_lattice_element(elementsvector[i].second);
+        bigintmat * temp = f(elementsvector[i].second,fieldcoef, coef);
         elements->appendCol(temp);
         delete temp;
     }
@@ -1289,7 +1290,8 @@ bigintmat * lattice::enumerate_next(number a, bigintmat * in){//next element x w
     if(n_Equal(minusOne,norm,fieldcoef)){
         out = NULL;
     } else {
-        out = get_lattice_element(x);
+        f = n_SetMap(fieldcoef, coef);
+        out = f(x, fieldcoef, coef);
     }
     n_Delete(&minusOne, fieldcoef);
     n_Delete(&norm, fieldcoef);
@@ -1361,7 +1363,8 @@ bigintmat * lattice::enumerate_next(){
     }
     n_Delete(&minusOne,fieldcoef);
     n_Delete(&norm,fieldcoef);
-    bigintmat * out = get_lattice_element(x);
+    nMapFunc f = n_SetMap(fieldcoef, coef);
+    bigintmat * out = f(x, fieldcoef, coef);
     return out;
 }
 
@@ -1842,7 +1845,12 @@ poly get_nice_poly(poly polynom){
     nforder * maxord = (nforder * ) iiRETURNEXPR.Data();//order from poly
     iiRETURNEXPR.CleanUp();
     number * poly_in;
-    coeffs coef = currRing->cf;
+    coeffs coef ;
+    if(nCoeff_is_Ring_Z(coef)) {
+        coef = nInitChar(n_Q,NULL);  
+    } else {
+        coef = currRing->cf;
+    }
     int deg = poly2numbers(polynom,poly_in,currRing,coef);
     
     int primes_1000[] = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233, 239, 241, 251, 257, 263, 269, 271, 277, 281, 283, 293, 307, 311, 313, 317, 331, 337, 347, 349, 353, 359, 367, 373, 379, 383, 389, 397, 401, 409, 419, 421, 431, 433, 439, 443, 449, 457, 461, 463, 467, 479, 487, 491, 499, 503, 509, 521, 523, 541, 547, 557, 563, 569, 571, 577, 587, 593, 599, 601, 607, 613, 617, 619, 631, 641, 643, 647, 653, 659, 661, 673, 677, 683, 691, 701, 709, 719, 727, 733, 739, 743, 751, 757, 761, 769, 773, 787, 797, 809, 811, 821, 823, 827, 829, 839, 853, 857, 859, 863, 877, 881, 883, 887, 907, 911, 919, 929, 937, 941, 947, 953, 967, 971, 977, 983, 991, 997};
@@ -1854,7 +1862,15 @@ poly get_nice_poly(poly polynom){
         n_Delete(&p,coef);
         delete temp;
     }
-    bigintmat * basis = maxord->getBasis();
+    
+    bigintmat * basis = bimChangeCoeff(maxord->viewBasis(),coef);
+    nMap f = n_SetMap(currRing->cf,coef);
+    number temp = maxord->getDiv();
+    number temp2 = f(temp,currRing->cf,coef);
+    basis->skaldiv(temp2,coef);
+    n_Delete(&temp,currRing->cf);
+    n_Delete(&temp2,coef);
+    
     int precision = 42;//the answer to life, the universe and everything is always a good start
     lattice * latticeNF = minkowski(basis,poly_in,deg,coef,precision);
     number c = NULL;
@@ -1884,7 +1900,7 @@ poly get_nice_poly(poly polynom){
     }
     omFreeSize((ADDRESS)poly_out, sizeof(number)*deg);
     delete latticeNF;
-    return NULL;
+    return NULL;//none found
 }
 
 bool is_primitive(number * /*poly*/,int /*deg*/){
