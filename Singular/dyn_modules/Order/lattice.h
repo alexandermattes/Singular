@@ -172,8 +172,9 @@ class lattice {
 
 
 //NOTE: could be moved to bigintmat
-inline number scalarproduct(bigintmat * a, bigintmat * b);
+number scalarproduct(bigintmat * a, bigintmat * b);
 
+number round(number r, coeffs coef);
 
 //minkowski
 lattice * minkowski(bigintmat * elements, number * poly,int deg, coeffs coef, int precision);

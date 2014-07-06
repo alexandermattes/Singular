@@ -519,38 +519,11 @@ void lattice::RED(int k, int l){
     
     DEBUG_N(my_kl);
     
-    bool abs_my_bigger_than_half = n_Greater (my_kl,n_1div2,coef) || n_Greater (n_neg1div2,my_kl,coef);
+    bool abs_my_bigger_than_half = n_Greater(my_kl,n_1div2,coef) || n_Greater(n_neg1div2,my_kl,coef);
 
     if(abs_my_bigger_than_half) { 
-        
-        
-        
-        number n_0 = n_Init(0,coef);
-        
-        number my_klplus1div2;
-        
-        if(n_Greater (my_kl,n_0,coef)) {
-            my_klplus1div2 = n_Add(my_kl, n_1div2, coef);
-        } else {
-            my_klplus1div2 = n_Add(my_kl, n_neg1div2, coef);
-        }
-        
-        n_Delete(&n_0,coef);
-        n_0 = NULL;
-        
-        number numerator = n_GetNumerator(my_klplus1div2,coef); 
-        number denominator = n_GetDenom(my_klplus1div2,coef);
-        
-        number q = n_IntDiv(numerator,denominator,coef); 
-        
-        n_Delete(&numerator,coef);
-        numerator = NULL;
-        n_Delete(&denominator,coef);
-        denominator = NULL;
-        
-        n_Delete(&my_klplus1div2,coef);
-        my_klplus1div2 = NULL;
-        
+                
+        number q = round(my_kl,coef);
         DEBUG_N(q);
         
         if(only_gram_matrix_given){
@@ -1621,6 +1594,11 @@ number lattice::gram_matrix_view(int i, int j){
     return gram_matrix_content[i-1][j-1];
 }
 
+
+///////////////////////////////////////
+//        None-Member-Funtions      ///
+///////////////////////////////////////
+
 number scalarproduct(bigintmat * a, bigintmat * b) {
     DEBUG_BLOCK(false);
     DEBUG_PRINT(("Start scalarproduct\n"));  
@@ -1654,6 +1632,153 @@ number scalarproduct(bigintmat * a, bigintmat * b) {
     DEBUG_N(p);
     DEBUG_PRINT(("End scalarproduct\n"));  
     return p;
+}
+
+//based on /Singular/LIB/atkins.lib
+//NOTE: rounds .5 up 
+number round(number r,coeffs coef) {
+    DEBUG_PRINT(("Start round\n"));
+    DEBUG_N(r);
+    
+    if((r == NULL) || (coef == NULL)) {
+        Werror("input of round is NULL");
+        DEBUG_PRINT(("End round\n"));
+        return NULL;
+    }
+    if(getCoeffType(coef)==n_Z){
+        DEBUG_PRINT(("getCoeffType(coef)==n_Z\n"));
+        DEBUG_PRINT(("End round\n"));;  
+        return n_Copy(r,coef);
+    }
+    if(getCoeffType(coef)==n_Q){
+        DEBUG_PRINT(("getCoeffType(coef)==n_Q\n"));
+        number n_0    = n_Init( 0,coef);
+        number n_1    = n_Init( 1,coef);
+        number n_neg1 = n_Init(-1,coef);
+        number n_2    = n_Init( 2,coef);
+        
+        number n_1div2    = n_Div(n_1,n_2,coef);
+        number n_neg1div2 = n_Div(n_neg1,n_2,coef);
+        
+        number r_;
+        
+        if(n_Greater(r,n_0,coef)) {
+            r_ = n_Add(r, n_1div2, coef);
+        } else {
+            r_ = n_Add(r, n_neg1div2, coef);
+        }
+
+        
+        number numerator = n_GetNumerator(r_,coef);
+        DEBUG_N(numerator);
+        number denominator = n_GetDenom(r_,coef);
+        DEBUG_N(denominator);
+        
+        number q = n_IntDiv(numerator,denominator,coef);
+        DEBUG_N(q);
+        
+        n_Delete(&n_0,coef);
+        n_Delete(&n_1,coef);
+        n_Delete(&n_neg1,coef);
+        n_Delete(&n_2,coef);
+        n_Delete(&n_1div2,coef);
+        n_Delete(&n_neg1div2,coef);
+        n_Delete(&r_,coef);
+        n_Delete(&numerator,coef);
+        n_Delete(&denominator,coef);        
+        
+        DEBUG_PRINT(("End round\n"));
+        return q;
+    }
+    if((getCoeffType(coef)==n_long_R) || (getCoeffType(coef)==n_R)){
+        DEBUG_PRINT(("(getCoeffType(coef)==n_long_R) || (getCoeffType(coef)==n_R)\n"));  
+        number n_0    = n_Init( 0,coef);
+        number n_1    = n_Init( 1,coef);
+        number n_neg1 = n_Init(-1,coef);
+        number n_2    = n_Init( 2,coef);
+        
+        number n_1div2    = n_Div(n_1,n_2,coef);
+        
+        number a;
+        if(n_Greater(r,n_0,coef)) {
+            a = n_Copy(r,coef);
+        } else {
+            a = n_Mult(n_neg1,r,coef);
+        }
+        DEBUG_N(a);
+        
+        number v = n_Div(r,a,coef);
+        DEBUG_N(v);
+        
+        number d = n_Init(10,coef);
+        DEBUG_N(d);
+        
+        int e = 0;
+        while(1){
+            e=e+1;
+            DEBUG_VAR(e);
+            
+            number pow;
+            n_Power(d,e,&pow,coef);
+            number diff = n_Sub(a,pow,coef);
+            n_Delete(&pow,coef);
+            if(n_Greater(n_0,diff,coef)){
+                n_Delete(&diff,coef);
+                e=e-1;
+                break;
+            }
+            n_Delete(&diff,coef);
+        }
+
+        number b = n_Copy(a,coef);
+        DEBUG_N(b);
+        
+        for(int k=0;k<=e;k++){
+            DEBUG_VAR(k);
+            
+            number s;
+            n_Power(d,e-k,&s,coef);
+            s = n_InpNeg(s,coef);
+            while(1)
+            {
+                n_InpAdd(b,s,coef);
+                if(n_Greater(n_0,b,coef)){
+                    s = n_InpNeg(s,coef);
+                    n_InpAdd(b,s,coef);
+                    break;
+                }
+            }
+            DEBUG_N(b);
+            n_Delete(&s,coef);
+        }
+        number diff = n_Sub(a,b,coef);
+        number diffmin1 = n_Sub(diff,n_neg1,coef);
+        
+        number result;
+        
+        if(n_Greater(n_1div2,b,coef)){
+            result = n_Mult(v,diff,coef);
+        }else{
+            result = n_Mult(v,diffmin1,coef);
+        }
+        
+        n_Delete(&n_0,coef);
+        n_Delete(&n_1,coef);
+        n_Delete(&n_neg1,coef);
+        n_Delete(&n_2,coef);
+        n_Delete(&n_1div2,coef);
+        n_Delete(&a,coef);
+        n_Delete(&v,coef);
+        n_Delete(&d,coef);
+        n_Delete(&b,coef);
+        
+        DEBUG_N(result);
+        DEBUG_PRINT(("End round\n"));
+        return result;
+    }
+    
+    Werror("round is not defined on this ring");
+    return NULL;
 }
 
 
