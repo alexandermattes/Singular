@@ -25,22 +25,32 @@ number temp_test(number a) {
 //     test_Enumerate(currRing->cf);
 //     PrintS("\n\n\n");
     test_LLL();
-
-    
+        
+//     coeffs coef = nInitChar(n_R, NULL);
+//     number t = n_Div(n_Init(110,coef),n_Init(100,coef),coef);
+//     n_Print(t,coef);
+//     PrintS("\n");
+//     number r = round(t,coef);
+//     PrintS("\n\n\n");
+//     n_Print(r,coef);
+//     PrintS("\n\n\n");
     return c;    
 }
 
 
 void test_LLL() {
-    coeffs coef = nInitChar(n_Q,NULL);
+//     coeffs coef = nInitChar(n_Q,NULL);
 //     int precision = 6;
 //     LongComplexInfo paramReal;
 //     paramReal.float_len = si_min (precision, 32767);
 //     paramReal.float_len2 = si_min (precision, 32767);
 //     paramReal.par_name=(const char*)"i";
 //     coeffs coef = nInitChar(n_Z, NULL);
+//     coeffs coef = nInitChar(n_long_R, &paramReal);
+    coeffs coef = nInitChar(n_R, NULL);
     
-    PrintS("Test LLL\n");
+    PrintS("Test LLL\n");    
+    
     
     //Vector containing test matrices
     std::vector<bigintmat*> vec;
@@ -124,7 +134,7 @@ void test_LLL() {
 
     //Random matrices
     srand(1234);
-    for(int t = 0; t < 10; t++) {
+    for(int t = 0; t < 1; t++) {
         int matrix_size = rand() % 10 + 1;
         bigintmat * matrix = new bigintmat(matrix_size,matrix_size,coef);
         matrix->one();
@@ -145,7 +155,7 @@ void test_LLL() {
         
         lattice * l = new lattice(vec[i]);
         number c = NULL;
-        l->LLL(c,coef,true,false,true);
+        l->LLL(c,coef,true,true,true);
         bigintmat * reduced = l->get_reduced_basis();
         bigintmat * H = l->get_transformation_matrix();
         
@@ -154,7 +164,8 @@ void test_LLL() {
         PrintS("\n");
         
         bigintmat * input_times_H = bimMult(vec[i],H);
-        bool transformation_is_correct = bimSub(reduced,input_times_H)->isZero();
+        bigintmat * errormatrix = bimSub(reduced,input_times_H);
+        bool transformation_is_correct = errormatrix->isZero();
         
         assume(transformation_is_correct);
         if(transformation_is_correct) {
@@ -163,8 +174,8 @@ void test_LLL() {
             PrintS("transformation is NOT correct:\n");
             PrintS("H =\n");
             H->Print();
-            PrintS("\ninput_times_H =\n");
-            input_times_H->Print();
+            PrintS("\nerrormatrix =\n");
+            errormatrix->Print();
             PrintS("\n");
             getchar();
         }
@@ -195,6 +206,7 @@ void test_LLL() {
         delete reduced;
         delete H;
         delete input_times_H;
+        delete errormatrix;
         delete l;
     }
     
@@ -216,7 +228,7 @@ void test_Enumerate(coeffs coef) {
     
     number c = n_Init(1000,coef);
     
-    for(int t = 0; t < 10; t++) {
+    for(int t = 0; t < 1; t++) {
         int matrix_size = rand() % 50 + 1;
         if(matrix_size<2 ) matrix_size=2;
         bigintmat * matrix = new bigintmat(matrix_size,matrix_size,coef);

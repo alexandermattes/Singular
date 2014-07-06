@@ -222,7 +222,7 @@ static int lattice_id=1; //NOTE 1 works?
 static void * lattice_Init(blackbox */*b*/)
 {
   void * l = omAlloc(sizeof(lattice));
-  Print("create at %lx\n",(unsigned long)l);
+//   Print("create at %lx\n",(unsigned long)l);
   return (void*) l;
 }
 
@@ -230,7 +230,7 @@ static void lattice_destroy(blackbox * /*b*/, void *d)
 {
   if (d!=NULL)
   {
-    Print("destroy %x at %lx\n",*((int*)d),(unsigned long)d);
+//     Print("destroy %x at %lx\n",*((int*)d),(unsigned long)d);
     delete (lattice*)d;
   }
 }
@@ -588,13 +588,32 @@ static BOOLEAN LLL(leftv result, leftv arg)
   if( (arg == NULL) 
     ||(arg->Typ() != lattice_id)) 
   {
-    WerrorS("usage: LLL(lattice)");
+    WerrorS("usage: LLL(lattice,[number])");
   }
   lattice * l = (lattice*) arg->Data();
-
-  number c = NULL;
-  l->LLL(c,NULL,true,false,true);
-//   l->LLL();
+  
+  number c;
+  coeffs coef = currRing->cf;
+  
+  arg = arg->next;
+  
+  if(arg == NULL) 
+  {
+    number three = n_Init(3, coef);
+    number four  = n_Init(4, coef);
+    c = n_Div(three,four,coef);
+    n_Delete(&three,coef);
+    n_Delete(&four,coef);
+  } 
+  else if(arg->Typ() != NUMBER_CMD) 
+  {
+    WerrorS("usage: LLL(lattice,[number])");
+  } else {
+    c = (number) arg->Data();
+  }
+  
+  l->LLL(c,coef,true,false,true);
+  
   result->rtyp = NONE;
   return FALSE;
 }
@@ -786,6 +805,8 @@ extern "C" int mod_init(SModulFunctions* psModulFunctions)
 {
   nforder_Register();
   nforder_ideal_bb_setup();
+  lattice_bb_setup();
+  
   psModulFunctions->iiAddCproc(
           (currPack->libname? currPack->libname: ""),// the library name,
           "nfOrder",// the name for the singular interpreter
@@ -941,7 +962,6 @@ extern "C" int mod_init(SModulFunctions* psModulFunctions)
      (currPack->libname? currPack->libname: "NFOrder"),// the library name,
     "nforder: orders in number fields"); // the help string for the module
   
-  lattice_bb_setup();
   
   
   return 1;

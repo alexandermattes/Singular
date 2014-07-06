@@ -88,7 +88,9 @@ class lattice {
         
         inline void delete_LLL_computations();
         
-        inline void DEBUG_LLL();
+        inline void print_all_in_LLL();
+        
+        inline void cancel_ratios_in_LLL();
         
         //for LLL, see Cohen 2.6.3
         inline void RED(int k, int l);

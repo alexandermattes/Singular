@@ -22,7 +22,7 @@
 //         Debugging Stuff          ///
 ///////////////////////////////////////
 
-#define DEBUG_PRINTS 1 //remove this line to disable debugging
+// #define DEBUG_PRINTS 1 //remove this line to disable debugging
 #ifdef DEBUG_PRINTS
 
   //DEBUG_BLOCK(true / false); to enable/disable debugging in this block
@@ -35,6 +35,7 @@
 # define DEBUG_VAR(x) do {if(debug_block) {std::cout<<#x<<": "<<x<<std::endl;}}  while(0)
 # define DEBUG_N(x) do {if(debug_block) {Print(#x);Print(": ");n_Print(x,coef);Print("\n");}} while(0)
 # define DEBUG_BIM(x) do {if(debug_block) {Print(#x);Print(": ");x->Print();Print("\n");}} while(0)
+# define DEBUG_LLL(x) do {if(debug_block) {print_all_in_LLL();}} while(0)
 #else
 # define DEBUG_BLOCK(x) do {} while (0)
 # define DEBUG_PRINT(x) do {} while (0)
@@ -42,6 +43,7 @@
 # define DEBUG_VAR(x)   do {} while (0)
 # define DEBUG_N(x)     do {} while (0)
 # define DEBUG_BIM(x)   do {} while (0)
+# define DEBUG_LLL(x)   do {cancel_ratios_in_LLL();} while (0)
 #endif
 
 
@@ -224,7 +226,7 @@ void lattice::delete_LLL_computations(){
     lambda = NULL; 
 }
 
-void lattice::DEBUG_LLL(){
+void lattice::print_all_in_LLL(){
     DEBUG_BLOCK(true);
     
     if(b != NULL) {
@@ -267,16 +269,76 @@ void lattice::DEBUG_LLL(){
         }  
     }
     
-    if(my != NULL)
-        DEBUG_BIM(my);
+    if(my != NULL) {
+        Print("my: ");
+        my->Print();
+        Print("\n");
+    }
     
-    if(lambda != NULL)
-        DEBUG_BIM(lambda);
+    if(lambda != NULL){
+        Print("lambda: ");
+        lambda->Print();
+        Print("\n");
+    }
     
-    if(H != NULL)
-        DEBUG_BIM(H);
+    if(H != NULL){
+        Print("H: ");
+        H->Print();
+        Print("\n");
+    }
     
 //     getchar();
+}
+
+void lattice::cancel_ratios_in_LLL(){
+
+    
+    if(b != NULL) {
+        for(int i=1; i<=n;i++){
+            if(b[i] != NULL) {
+                b[i]->String();
+            }
+        }
+    }
+    
+    if(b_star != NULL) {
+        for(int i=1; i<=n;i++){
+            if(b_star[i] != NULL) {
+                b_star[i]->String();
+            }
+        }
+    }
+    
+    if(B != NULL) {
+        for(int i=1; i<=n;i++){
+            if(B[i] != NULL) {
+                StringSetS("");
+                n_Write(B[i],coef);
+                char * s = StringEndS();
+                omFree(s);
+            }
+        }  
+    }
+    
+    if(d != NULL) {
+        for(int i=1; i<=n;i++){
+            if(d[i] != NULL) {
+                StringSetS("");
+                n_Write(d[i],coef);
+                char * s = StringEndS();
+                omFree(s);
+            }
+        }  
+    }
+    
+    if(my != NULL)
+        my->String();
+    
+    if(lambda != NULL)
+        lambda->String();
+    
+    if(H != NULL)
+        H->String();
 }
 
 bool lattice::LLL(){
