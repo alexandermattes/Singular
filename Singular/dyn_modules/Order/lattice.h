@@ -190,4 +190,9 @@ bool is_primitive(number * poly,int deg);
 int poly2numbers(poly gls,number * pcoeffs,ring polyring, coeffs coef);
 poly numbers2poly(number * univpol, int deg, coeffs coef, ring polyring);
 
+//T2-norm
+number t2norm(bigintmat * elt);
+number t2norm(number * pol, int deg, coeffs coef, int precision);
+number t2norm(poly polynom, ring polyring, coeffs coef, int precision);
+
 #endif

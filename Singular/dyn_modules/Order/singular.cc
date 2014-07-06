@@ -713,7 +713,7 @@ static BOOLEAN enumerateNext(leftv result, leftv arg)
   arg = arg->next;
   bigintmat * enumeration = NULL;
   
-  if( (arg == NULL) || (arg->Typ() != NUMBER_CMD) || (arg->Typ() != BIGINTMAT_CMD) ) 
+  if( (arg == NULL) /*|| (arg->Typ() != NUMBER_CMD) || (arg->Typ() != BIGINTMAT_CMD)*/ ) 
   {
     enumeration = l->enumerate_next();
   } else {
@@ -721,7 +721,7 @@ static BOOLEAN enumerateNext(leftv result, leftv arg)
     {
       number c = ((number)arg->Data());
       arg = arg->next;
-      if( (arg == NULL) || (arg->Typ() != BIGINTMAT_CMD) ) 
+      if( (arg == NULL) /*|| (arg->Typ() != BIGINTMAT_CMD)*/ ) 
       {
         enumeration = l->enumerate_next(c);
         enumeration->Print();
@@ -735,15 +735,50 @@ static BOOLEAN enumerateNext(leftv result, leftv arg)
     }
   }
   
-  //if(enumeration == NULL)
-  //{
-    //bigintmat * basis =l->get_basis();
-    //enumeration = new bigintmat(basis->rows(),1,basis->basecoeffs());
-    //delete basis;
-  //}
+  if(enumeration == NULL)
+  {
+    bigintmat * basis =l->get_basis();
+    enumeration = new bigintmat(basis->cols(),1,basis->basecoeffs());
+    delete basis;
+  }
   
   result->rtyp = BIGINTMAT_CMD;
   result->data = (void*) enumeration;
+  return FALSE;
+}
+
+static BOOLEAN get_same_field_poly(leftv result, leftv arg)
+{
+  if( (arg == NULL) 
+    ||(arg->Typ() != POLY_CMD)) 
+  {
+    WerrorS("usage: sameFieldPoly( poly )");
+  }
+  poly in =((poly)arg->Data());
+  poly out = get_nice_poly(in);
+  result->rtyp = POLY_CMD;
+  result->data = (void*) out;
+  return FALSE;
+}
+
+static BOOLEAN t2_norm(leftv result, leftv arg)
+{
+  if( (arg == NULL) 
+    ||(arg->Typ() != POLY_CMD)) 
+  {
+    WerrorS("usage: t2norm(poly, int)");
+  }
+  arg = arg->next;
+  if( (arg == NULL) 
+    ||(arg->Typ() != INT_CMD)) 
+  {
+    WerrorS("usage: t2norm(poly, int)");
+  }
+  int prec = (int)(long) arg->Data();
+  poly in =((poly)arg->Data());
+  number out = t2norm(in,currRing,currRing->cf,prec);
+  result->rtyp = NUMBER_CMD;
+  result->data = (void*) out;
   return FALSE;
 }
 
@@ -889,6 +924,18 @@ extern "C" int mod_init(SModulFunctions* psModulFunctions)
           "enumerateNext",
           FALSE, 
           enumerateNext);
+  
+  psModulFunctions->iiAddCproc(
+          (currPack->libname? currPack->libname: ""),
+          "sameFieldPoly",
+          FALSE, 
+          get_same_field_poly);
+  
+  psModulFunctions->iiAddCproc(
+          (currPack->libname? currPack->libname: ""),
+          "t2norm",
+          FALSE, 
+          t2_norm);
   
   module_help_main(
      (currPack->libname? currPack->libname: "NFOrder"),// the library name,
