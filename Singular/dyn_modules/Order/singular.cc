@@ -727,12 +727,14 @@ static BOOLEAN enumerateNext(leftv result, leftv arg)
     ||(arg->Typ() != lattice_id)) 
   {
     WerrorS("usage: enumerateNext(lattice [, number] [,bigintmat])");
+    return TRUE;
   }
   lattice * l = (lattice*) arg->Data();
   arg = arg->next;
   bigintmat * enumeration = NULL;
   
-  if( (arg == NULL) /*|| (arg->Typ() != NUMBER_CMD) || (arg->Typ() != BIGINTMAT_CMD)*/ ) 
+  
+  if( (arg == NULL) || ((arg->Typ() != NUMBER_CMD) && (arg->Typ() != BIGINTMAT_CMD)) ) 
   {
     enumeration = l->enumerate_next();
   } else {
@@ -740,17 +742,28 @@ static BOOLEAN enumerateNext(leftv result, leftv arg)
     {
       number c = ((number)arg->Data());
       arg = arg->next;
-      if( (arg == NULL) /*|| (arg->Typ() != BIGINTMAT_CMD)*/ ) 
+      if( (arg == NULL) )
       {
         enumeration = l->enumerate_next(c);
-        enumeration->Print();
       } else {
-        bigintmat * in = (bigintmat *) arg->Data();
-        enumeration = l->enumerate_next(c,in);
+        if(arg->Typ() == BIGINTMAT_CMD)
+        {
+          bigintmat * in = (bigintmat *) arg->Data();
+          enumeration = l->enumerate_next(c,in);
+        } else {
+          WerrorS("usage: enumerateNext(lattice [, number] [,bigintmat])");
+          return TRUE;
+        }
       }
     } else {
-      bigintmat * in = (bigintmat *) arg->Data();
-      enumeration = l->enumerate_next(in);
+      if(arg->Typ() == BIGINTMAT_CMD)
+      {
+        bigintmat * in = (bigintmat *) arg->Data();
+        enumeration = l->enumerate_next(in);
+      } else {
+        WerrorS("usage: enumerateNext(lattice [, number] [,bigintmat])");
+        return TRUE;
+      }
     }
   }
   
