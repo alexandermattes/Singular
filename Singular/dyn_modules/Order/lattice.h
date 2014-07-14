@@ -179,14 +179,14 @@ number scalarproduct(bigintmat * a, bigintmat * b);
 number round(number r, coeffs coef);
 
 //minkowski
-lattice * minkowski(bigintmat * elements, number * poly,int deg, coeffs coef, int precision);
+int minkowski(bigintmat * basiselements, number * poly,int deg, coeffs coef, int precision, lattice * latticeNF);
 bool IsReal(number a, coeffs coef);
 bool ImagGreaterZero(number a, coeffs coef);
 number squareroot(number a, coeffs coef, int iteration);// iteration in Heron algorithm
 
 //get nice polynom for field over Q
 poly get_nice_poly(poly polynom_in);
-bool is_primitive(number * poly,int deg);
+bool is_primitive(bigintmat * element,int r1, int precision, poly out, const ring polyring);
 
 
 //poly to number array and vice versa
@@ -197,5 +197,8 @@ poly numbers2poly(number * univpol, int deg, coeffs coef, ring polyring);
 number t2norm(bigintmat * elt);
 number t2norm(number * pol, int deg, coeffs coef, int precision);
 number t2norm(poly polynom, ring polyring, coeffs coef, int precision);
+
+number elementary_symmetric_function(number * roots, int deg, int si, int lower_bound, coeffs coef);
+
 
 #endif

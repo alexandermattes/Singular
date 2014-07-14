@@ -12,6 +12,7 @@
 #include "nforder.h"
 
 #include <polys/monomials/p_polys.h>
+#include <polys/clapsing.h>
 
 #include <Singular/ipshell.h>
 
@@ -1847,26 +1848,29 @@ number round(number r,coeffs coef) {
 ///////////////////////////////////////
 //         Minkowski map            ///
 ///////////////////////////////////////
-lattice * minkowski(bigintmat * basiselements, number * poly,int deg, coeffs coef, int precision){
+int minkowski(bigintmat * basiselements, number * poly,int deg, coeffs coef, int precision, lattice * latticeNF){
     DEBUG_BLOCK(true);
     DEBUG_PRINT(("Begin Minkowski map\n"));
     DEBUG_PRINT(("Input check\n"));
+    DEBUG_PRINT(("clear latticeNF\n"));
+    delete latticeNF;
+    latticeNF = NULL;
+    
     if(basiselements == NULL || poly == NULL || coef != basiselements->basecoeffs()){
         WerrorS("wrong input!\n");
-        return NULL;
+        return -1;
     }
-    
     
     //char = 0
     if ( !(nCoeff_is_Ring_Z(coef) || nCoeff_is_R(coef) || nCoeff_is_Q(coef) ||
             nCoeff_is_long_R(coef) || nCoeff_is_long_C(coef)) ){
         WerrorS("Ground field not implemented!\n");
-        return NULL;
+        return -1;
     }
     
     if(deg<2){
         WerrorS("degree of polynomial to small\n");
-        return NULL;
+        return -1;
     }
     //check and define precision for Q
     if(precision<6){
@@ -1895,7 +1899,7 @@ lattice * minkowski(bigintmat * basiselements, number * poly,int deg, coeffs coe
     int number_roots = rootcont ->getAnzRoots();
     if(number_roots != deg){
         WerrorS("something went wrong: \n\tnot all roots found\n");
-        return NULL;
+        return -1;
     }
     LongComplexInfo paramComp = {si_min (precision+6, 32767),si_min (precision+8, 32767),(const char*)"i"};
     
@@ -1979,9 +1983,9 @@ lattice * minkowski(bigintmat * basiselements, number * poly,int deg, coeffs coe
     delete complexmat;
     nKillChar(comp);
     
-    lattice * latticeNF = new lattice(realmat);
+    latticeNF = new lattice(realmat);
     delete realmat;
-    return latticeNF;
+    return r1;
 }
 
 bool IsReal(number a, coeffs coef){ //Im(a)==0
@@ -2067,20 +2071,21 @@ poly get_nice_poly(poly polynom){
     n_Delete(&temp2,coef);
     
     int precision = 42;//the answer to life, the universe and everything is always a good start
-    lattice * latticeNF = minkowski(basis,poly_in,deg,coef,precision);
+    lattice * latticeNF =NULL;
+    int r1 = minkowski(basis,poly_in,deg,coef,precision,latticeNF);
     number c = NULL;
     while(latticeNF->LLL(c,NULL,false,false,true) && precision < 32767){
         delete latticeNF;
         precision = precision +5;
-        latticeNF = minkowski(basis,poly_in,deg,coef,precision);
+        r1 = minkowski(basis,poly_in,deg,coef,precision,latticeNF);
     }
     
     
-    number * poly_out = (number *)omAlloc(sizeof(number)*deg);
     bigintmat * LLLbasis = latticeNF->get_reduced_basis();
     coeffs real = LLLbasis->basecoeffs();
     number bound = t2norm(polynom,currRing,real,precision);
-    //check for primitive element in LLLbasis
+    poly reduced_poly = NULL;
+    ///check for primitive element in LLLbasis
     for(int j=1;j<=deg;j++){
         bigintmat * testelement; 
         LLLbasis->getcol(j,testelement);
@@ -2089,27 +2094,26 @@ poly get_nice_poly(poly polynom){
             delete testelement;
             break;
         }
-        for(int i=0;i<deg;i++){
-            poly_out[i] = LLLbasis->get(i+1,1);
-        }
-        if(is_primitive(poly_out,deg)){
+        if(is_primitive(testelement, r1, precision, reduced_poly, currRing)){
             n_Delete(&bound,real);
             delete latticeNF;
             delete LLLbasis;
             return NULL;//correct
         }
-        for(int i=0;i<deg;i++){
-            n_Delete(&poly_out[i],real);
-        }
         delete testelement;
     }
     delete LLLbasis;
     
-    //enumerate all elements less bound and check
+    /*//enumerate all elements less bound and check
     bigintmat * elementbasis = latticeNF->enumerate_next(bound);
     bigintmat * testelement = latticeNF->get_lattice_element(elementbasis);
-    while(basis != NULL){
-        
+    while(elementbasis != NULL){
+        if(is_primitive(testelement, r1, precision, reduced_poly, currRing)){
+            n_Delete(&bound,real);
+            delete latticeNF;
+            delete LLLbasis;
+            return NULL;//correct
+        }
         delete elementbasis;
         elementbasis = latticeNF->enumerate_next();
         delete testelement;
@@ -2117,19 +2121,85 @@ poly get_nice_poly(poly polynom){
     }
     delete elementbasis;
     delete testelement;
+    //*/
     
     //None found, so delete unused stuff
     n_Delete(&bound,real);
-    for(int i=0;i<deg;i++){
-        n_Delete(&poly_out[i],real);
-    }
-    omFreeSize((ADDRESS)poly_out, sizeof(number)*deg);
     delete latticeNF;
     return NULL;//none found
 }
 
-bool is_primitive(number * /*poly*/,int /*deg*/){
+bool is_primitive(bigintmat * element,int r1, int precision, poly out, const ring polyring){
     return true;
+    
+    //check if all numbers in minkowski element are diffrent
+    coeffs coef = element->basecoeffs();
+    for(int i=0;i<element->rows()-1;i++){
+        for(int j=i+1;j<element->rows();j++){
+            if(n_Equal(element->view(i),element->view(j),coef)){
+                return false;
+            }
+        }
+    }
+    
+    //generate roots from minkowski element
+    LongComplexInfo paramComp = {si_min (precision, 32767),si_min (precision, 32767),(const char*)"i"};
+    
+    if(r1>element->rows()){
+        return false;
+    }
+    int deg = element->rows();
+    coeffs comp = nInitChar(n_long_C, &paramComp);
+    nMapFunc f = n_SetMap(coef, comp);
+    
+    number * roots = new number[deg];
+    for(int i = 0; i<r1;i++){
+        roots[i] = f(element->view(i),coef,comp);
+    }
+    if(r1<deg){
+        number imagunit=ngcInit(1,comp);
+        number two = n_Init(2,comp);
+        number sqrt2 = squareroot(two,comp,precision+10);
+        for(int i=r1;i<deg;i=i+2){
+            number minkowreal = f(element->view(i),coef,comp);
+            number minkowimag = f(element->view(i+1),coef,comp);
+            number realpart = n_Div(minkowreal,sqrt2,comp);
+            number impart = n_Div(minkowimag,sqrt2,comp);
+            n_InpMult(impart,imagunit,comp);
+            roots[i] = n_Add(realpart,impart,comp);
+            roots[i+1] = n_Sub(realpart,impart,comp);
+            n_Delete(&minkowreal,comp);
+            n_Delete(&minkowimag,comp);
+            n_Delete(&realpart,comp);
+            n_Delete(&impart,comp);
+        }
+        n_Delete(&imagunit,comp);
+        n_Delete(&two,comp);
+        n_Delete(&sqrt2,comp);
+    }
+    number * polycoef = new number[deg+1];
+    
+    nMapFunc g = n_SetMap(comp, coef);
+    for(int i=0;i<deg;i++){
+        number temp = elementary_symmetric_function(roots,deg,i+1,0,comp);
+        number temp2 = ngcRePart(temp,comp);
+        n_Delete(&temp,comp);
+        temp = round(temp2,comp);
+        polycoef[i] = g(temp,comp,coef);
+        n_Delete(&temp,comp);
+        n_Delete(&temp2,comp);
+    }
+    polycoef[deg] = n_Init(1,coef);
+    poly testpoly = numbers2poly(polycoef,deg,coef,polyring);
+    int var = p_IsUnivariate(testpoly, polyring);
+    poly diff_testpoly = p_Diff(testpoly, var, polyring);
+    poly test = singclap_gcd(testpoly, diff_testpoly, polyring);
+    if(pLength(test)==1){
+        return true;
+    }
+    out = numbers2poly(polycoef,deg,coef,polyring);
+    return false;
+    
 }
 
 int poly2numbers(poly gls,number * pcoeffs,ring polyring, coeffs coef){
@@ -2138,8 +2208,12 @@ int poly2numbers(poly gls,number * pcoeffs,ring polyring, coeffs coef){
         WerrorS("No Input!");
         return -1;
     }
-    int ldummy;
-    int deg = polyring->pLDeg( gls, &ldummy, polyring );///FEHLER aus ipshell.cc line:4271
+    //int ldummy;
+    int deg = pLength(gls);// polyring->pLDeg( gls, &ldummy, polyring );///FEHLER aus ipshell.cc line:4271
+    if(p_IsUnivariate(gls, polyring)==0){
+        WerrorS("not univariate");
+        return -1;
+    }
     int vpos = 0;
     poly piter;
     if ( rVar(polyring) > 1 ){
@@ -2302,3 +2376,32 @@ number t2norm(poly polynom, ring polyring, coeffs coef, int precision){
     delete[] univpol;
     return norm;
 }
+
+number elementary_symmetric_function(number * roots, int deg, int si, int lower_bound, coeffs coef){
+    if (si <= 0 || si<= deg){
+        WerrorS("it should 1<=si<=deg");
+        return n_Init(0,coef);
+    }
+    if (lower_bound<0 || lower_bound>=deg){
+        WerrorS("it should 0<=lower_bound<deg");
+        return n_Init(0,coef);
+    }
+    
+    if (si == 1){
+        number sum = n_Init(0,coef);
+        for(int i=lower_bound;i<deg;i++){
+            n_InpAdd(sum,roots[i],coef);
+        }
+        return sum;
+    } else {
+        number sum = n_Init(0,coef);
+        for(int i=lower_bound;i<deg+1-si;i++){
+            number temp = elementary_symmetric_function(roots,deg,si-1,i+1,coef);
+            n_InpMult(temp,roots[i],coef);
+            n_InpAdd(sum,temp,coef);
+            n_Delete(&temp,coef);
+        }
+        return sum;
+    }
+}
+
