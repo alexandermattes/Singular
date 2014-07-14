@@ -12,6 +12,7 @@
 #include "temptest.h"
 #include "lattice.h"
 
+#include <Singular/libsingular.h> // for iiLibCmd
 
 static int nforder_type_id=0;
 n_coeffType nforder_type =n_unknown;
@@ -528,6 +529,7 @@ static BOOLEAN tempTest(leftv result, leftv arg)
     ||(arg->Typ() != NUMBER_CMD)) 
   {
     WerrorS("usage: TempTest(number)");
+    return TRUE;
   }
   number a = (number) arg->Data();
   result->rtyp = NUMBER_CMD;
@@ -541,6 +543,7 @@ static BOOLEAN bimToCurrRing(leftv result, leftv arg)
     ||(arg->Typ() != BIGINTMAT_CMD)) 
   {
     WerrorS("usage: bimToCurrRing(bigintmat)");
+    return TRUE;
   }
 
   bigintmat * in = (bigintmat *) arg->Data();  
@@ -557,6 +560,7 @@ static BOOLEAN latticeFromBasis(leftv result, leftv arg)
     ||(arg->Typ() != BIGINTMAT_CMD)) 
   {
     WerrorS("usage: latticeFromBasis(bigintmat)");
+    return TRUE;
   }
 
   bigintmat * a = (bigintmat *) arg->Data();  
@@ -573,6 +577,7 @@ static BOOLEAN latticeFromGramMatrix(leftv result, leftv arg)
     ||(arg->Typ() != BIGINTMAT_CMD)) 
   {
     WerrorS("usage: latticeFromGramMatrix(bigintmat)");
+    return TRUE;
   }
 
   bigintmat * a = (bigintmat *) arg->Data();  
@@ -589,6 +594,7 @@ static BOOLEAN LLL(leftv result, leftv arg)
     ||(arg->Typ() != lattice_id)) 
   {
     WerrorS("usage: LLL(lattice,[number])");
+    return TRUE;
   }
   lattice * l = (lattice*) arg->Data();
   
@@ -608,11 +614,13 @@ static BOOLEAN LLL(leftv result, leftv arg)
   else if(arg->Typ() != NUMBER_CMD) 
   {
     WerrorS("usage: LLL(lattice,[number])");
+    return TRUE;
   } else {
-    c = (number) arg->Data();
+    c = n_Copy((number) arg->Data(),coef);
   }
   
   l->LLL(c,coef,true,false,true);
+  n_Delete(&c,coef);
   
   result->rtyp = NONE;
   return FALSE;
@@ -624,6 +632,7 @@ static BOOLEAN getLatticeElement(leftv result, leftv arg)
     ||(arg->Typ() != lattice_id)) 
   {
     WerrorS("usage: getLatticeElement(lattice, bigintmat)");
+    return TRUE;
   }
   lattice * l = (lattice*) arg->Data();
   arg = arg->next;
@@ -631,6 +640,7 @@ static BOOLEAN getLatticeElement(leftv result, leftv arg)
     ||(arg->Typ() != BIGINTMAT_CMD)) 
   {
     WerrorS("usage: enumerateAll(lattice, number)");
+    return TRUE;
   }
   bigintmat * in = ((bigintmat *)arg->Data());
   bigintmat * enumeration = l->get_lattice_element(in);
@@ -646,6 +656,7 @@ static BOOLEAN getBasis(leftv result, leftv arg)
     ||(arg->Typ() != lattice_id)) 
   {
     WerrorS("usage: getBasis(lattice)");
+    return TRUE;
   }
   lattice * l = (lattice*) arg->Data();
 
@@ -661,6 +672,7 @@ static BOOLEAN getReducedBasis(leftv result, leftv arg)
     ||(arg->Typ() != lattice_id)) 
   {
     WerrorS("usage: getReducedBasis(lattice)");
+    return TRUE;
   }
   lattice * l = (lattice*) arg->Data();
 
@@ -676,6 +688,7 @@ static BOOLEAN getTransformationMatrix(leftv result, leftv arg)
     ||(arg->Typ() != lattice_id)) 
   {
     WerrorS("usage: getTransformationMatrix(lattice)");
+    return TRUE;
   }
   lattice * l = (lattice*) arg->Data();
 
@@ -691,6 +704,7 @@ static BOOLEAN getGramMatrix(leftv result, leftv arg)
     ||(arg->Typ() != lattice_id)) 
   {
     WerrorS("usage: getGramMatrix(lattice)");
+    return TRUE;
   }
   lattice * l = (lattice*) arg->Data();
 
@@ -706,6 +720,7 @@ static BOOLEAN enumerateAll(leftv result, leftv arg)
     ||(arg->Typ() != lattice_id)) 
   {
     WerrorS("usage: enumerateAll(lattice, number)");
+    return TRUE;
   }
   lattice * l = (lattice*) arg->Data();
   arg = arg->next;
@@ -713,6 +728,7 @@ static BOOLEAN enumerateAll(leftv result, leftv arg)
     ||(arg->Typ() != NUMBER_CMD)) 
   {
     WerrorS("usage: enumerateAll(lattice, number)");
+    return TRUE;
   }
   number c = ((number)arg->Data());
   bigintmat * enumeration = l->enumerate_all(c);
@@ -785,6 +801,7 @@ static BOOLEAN get_same_field_poly(leftv result, leftv arg)
     ||(arg->Typ() != POLY_CMD)) 
   {
     WerrorS("usage: sameFieldPoly( poly )");
+    return TRUE;
   }
   poly in =((poly)arg->Data());
   poly out = get_nice_poly(in);
@@ -799,12 +816,14 @@ static BOOLEAN t2_norm(leftv result, leftv arg)
     ||(arg->Typ() != POLY_CMD)) 
   {
     WerrorS("usage: t2norm(poly, int)");
+    return TRUE;
   }
   arg = arg->next;
   if( (arg == NULL) 
     ||(arg->Typ() != INT_CMD)) 
   {
     WerrorS("usage: t2norm(poly, int)");
+    return TRUE;
   }
   int prec = (int)(long) arg->Data();
   poly in =((poly)arg->Data());
@@ -816,6 +835,10 @@ static BOOLEAN t2_norm(leftv result, leftv arg)
 
 extern "C" int mod_init(SModulFunctions* psModulFunctions)
 {
+  //load nforder.lib for additional procedures
+  //NOTE: is this the correct way to do it?
+  iiLibCmd(omStrDup("nforder.lib"), TRUE,TRUE,TRUE);
+  
   nforder_Register();
   nforder_ideal_bb_setup();
   lattice_bb_setup();
