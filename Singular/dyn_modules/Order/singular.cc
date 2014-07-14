@@ -615,10 +615,11 @@ static BOOLEAN LLL(leftv result, leftv arg)
     WerrorS("usage: LLL(lattice,[number])");
     return TRUE;
   } else {
-    c = (number) arg->Data();
+    c = n_Copy((number) arg->Data(),coef);
   }
   
   l->LLL(c,coef,true,false,true);
+  n_Delete(&c,coef);
   
   result->rtyp = NONE;
   return FALSE;

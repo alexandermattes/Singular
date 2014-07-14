@@ -178,6 +178,9 @@ number scalarproduct(bigintmat * a, bigintmat * b);
 
 number round(number r, coeffs coef);
 
+void bimnlNormalize(bigintmat * m);
+
+
 //minkowski
 lattice * minkowski(bigintmat * elements, number * poly,int deg, coeffs coef, int precision);
 bool IsReal(number a, coeffs coef);
