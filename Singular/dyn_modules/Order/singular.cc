@@ -12,6 +12,7 @@
 #include "temptest.h"
 #include "lattice.h"
 
+#include <Singular/libsingular.h> // for iiLibCmd
 
 static int nforder_type_id=0;
 n_coeffType nforder_type =n_unknown;
@@ -834,6 +835,10 @@ static BOOLEAN t2_norm(leftv result, leftv arg)
 
 extern "C" int mod_init(SModulFunctions* psModulFunctions)
 {
+  //load nforder.lib for additional procedures
+  //NOTE: is this the correct way to do it?
+  iiLibCmd(omStrDup("nforder.lib"), TRUE,TRUE,TRUE);
+  
   nforder_Register();
   nforder_ideal_bb_setup();
   lattice_bb_setup();
