@@ -13,7 +13,7 @@
 #include "lattice.h"
 
 #include <Singular/libsingular.h> // for iiLibCmd
-
+#include"reporter/reporter.h"
 static int nforder_type_id=0;
 n_coeffType nforder_type =n_unknown;
 
@@ -524,7 +524,7 @@ static BOOLEAN smithtest(leftv result, leftv arg)
 //Temporary testfunction to play arround with new functions
 //NOTE: remove later
 static BOOLEAN tempTest(leftv result, leftv arg)
-{ 
+{ /*
   if( (arg == NULL) 
     ||(arg->Typ() != NUMBER_CMD)) 
   {
@@ -533,7 +533,23 @@ static BOOLEAN tempTest(leftv result, leftv arg)
   }
   number a = (number) arg->Data();
   result->rtyp = NUMBER_CMD;
-  result->data = (void*) temp_test(a);
+  result->data = (void*) temp_test(a);*/
+  if( (arg == NULL) 
+    ||(arg->Typ() != POLY_CMD)) 
+  {
+    WerrorS("usage: TempTest(poly)");
+    return TRUE;
+  }
+  poly gls = (poly) arg->Data();
+  number * pcoeffs;
+  int deg = poly2numbers(gls,pcoeffs,currRing, currRing->cf);
+  for(int i=0;i<=deg;i++){
+      n_Print(pcoeffs[i],currRing->cf);
+  }
+  poly out = numbers2poly(pcoeffs, deg, currRing->cf, currRing);
+  result->rtyp = POLY_CMD;
+  result->data = (void*) out;
+  
   return FALSE;
 }
 
@@ -837,7 +853,7 @@ extern "C" int mod_init(SModulFunctions* psModulFunctions)
 {
   //load nforder.lib for additional procedures
   //NOTE: is this the correct way to do it?
-  iiLibCmd(omStrDup("nforder.lib"), TRUE,TRUE,TRUE);
+  iiLibCmd(omStrDup("./LIB/nforder.lib"), TRUE,TRUE,TRUE);
   
   nforder_Register();
   nforder_ideal_bb_setup();

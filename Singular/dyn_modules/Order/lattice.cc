@@ -13,6 +13,8 @@
 
 #include <polys/monomials/p_polys.h>
 #include <polys/clapsing.h>
+#include <polys/weight.h>
+
 
 #include <Singular/ipshell.h>
 
@@ -23,7 +25,7 @@
 //         Debugging Stuff          ///
 ///////////////////////////////////////
 
-// #define DEBUG_PRINTS 1 //remove this line to disable debugging
+ #define DEBUG_PRINTS 1 //remove this line to disable debugging
 #ifdef DEBUG_PRINTS
 
   //DEBUG_BLOCK(true / false); to enable/disable debugging in this block
@@ -2236,10 +2238,12 @@ bool is_primitive(bigintmat * element,int r1, int precision, poly out, const rin
     int var = p_IsUnivariate(testpoly, polyring);
     poly diff_testpoly = p_Diff(testpoly, var, polyring);
     poly test = singclap_gcd(testpoly, diff_testpoly, polyring);
-    if(pLength(test)==1){
+    if(pLength(test)==1){//test if
+        //Delete things
+        out = numbers2poly(polycoef,deg,coef,polyring);
         return true;
     }
-    out = numbers2poly(polycoef,deg,coef,polyring);
+    //delete things
     return false;
     
 }
@@ -2251,33 +2255,18 @@ int poly2numbers(poly gls,number * pcoeffs,ring polyring, coeffs coef){
         return -1;
     }
     //int ldummy;
-    int deg = pLength(gls);// polyring->pLDeg( gls, &ldummy, polyring );///FEHLER aus ipshell.cc line:4271
-    if(p_IsUnivariate(gls, polyring)==0){
+    DEBUG_PRINT(("degree\n"));
+    long deg = p_Deg(gls,polyring);
+    DEBUG_PRINT(("univ\n"));
+    int vpos = p_IsUnivariate(gls, polyring);
+    if(vpos == -1){
         WerrorS("not univariate");
         return -1;
     }
-    int vpos = 0;
-    poly piter;
-    if ( rVar(polyring) > 1 ){
-        piter=gls;
-        for (int i= 1; i <= rVar(polyring); i++ )
-            if ( p_GetExp( piter, i, polyring) ) {
-                vpos= i;
-                break;
-            }
-        while ( piter ){
-            for (int i= 1; i <= rVar(polyring); i++ ) {
-                if ( (vpos != i) && (p_GetExp( piter, i, polyring) != 0) ) {
-                    WerrorS("The input polynomial must be univariate!");
-                    return -1;
-                }
-            }
-            pIter( piter );
-        }
-    }
-    piter = gls;
+    poly piter = gls;
     pcoeffs = (number *)omAlloc( (deg+1) * sizeof( number ) );
     nMapFunc f = n_SetMap(polyring->cf,coef);
+    DEBUG_PRINT(("iterate\n"));
     for (int i= deg; i >= 0; i-- ) {
         if ( piter && pTotaldegree(piter) == i ) {
             number temp = n_Copy( p_GetCoeff( piter, polyring), polyring->cf );
@@ -2287,7 +2276,10 @@ int poly2numbers(poly gls,number * pcoeffs,ring polyring, coeffs coef){
         } else {
             pcoeffs[i]= n_Init(0,coef);
         }
+        //DEBUG_VAR(i);
+        //DEBUG_N(pcoeffs[i]);
     }
+    DEBUG_PRINT(("finished\n"));
     return deg;
 }
 
@@ -2296,9 +2288,9 @@ poly numbers2poly(number * univpol, int deg, coeffs coef, ring polyring){
     poly result= NULL;
     poly ppos;
     nMapFunc f = n_SetMap(coef,polyring->cf);
-
+    DEBUG_PRINT(("set coefficients\n"));
     for ( long i= deg; i >= 0; i-- ){
-        if ( univpol[i] ){
+        if ( !n_IsZero(univpol[i],coef) ){
             poly p= p_One(polyring);
             //pSetExp( p, var+1, i);
             p_SetExp( p, 1, i, polyring);
