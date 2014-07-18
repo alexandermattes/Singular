@@ -13,7 +13,6 @@
 
 #include <polys/monomials/p_polys.h>
 #include <polys/clapsing.h>
-#include <polys/weight.h>
 
 
 #include <Singular/ipshell.h>
@@ -2264,7 +2263,7 @@ int poly2numbers(poly gls,number * &pcoeffs,ring polyring, coeffs coef){
     DEBUG_VAR(deg);
     DEBUG_PRINT(("univ\n"));
     int vpos = p_IsUnivariate(gls, polyring);
-    if(vpos == -1){
+    if(vpos <= 0){
         WerrorS("not univariate");
         return -1;
     }
@@ -2408,6 +2407,10 @@ number t2norm(poly polynom, ring polyring, coeffs coef, int precision){
     DEBUG_PRINT(("t2 norm poly\n"));
     number * univpol = NULL;
     int deg = poly2numbers(polynom,univpol,polyring, coef);
+    if(deg == -1){
+        WerrorS("Not an univariate polynomial");
+        return NULL;
+    }
     number norm = t2norm(univpol,deg,coef,precision);
     for(int i=0;i<deg;i++){
         n_Delete(&univpol[i],coef);

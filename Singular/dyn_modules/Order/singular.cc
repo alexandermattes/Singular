@@ -524,7 +524,7 @@ static BOOLEAN smithtest(leftv result, leftv arg)
 //Temporary testfunction to play arround with new functions
 //NOTE: remove later
 static BOOLEAN tempTest(leftv result, leftv arg)
-{ 
+{ /*
   if( (arg == NULL) 
     ||(arg->Typ() != NUMBER_CMD)) 
   {
@@ -533,7 +533,21 @@ static BOOLEAN tempTest(leftv result, leftv arg)
   }
   number a = (number) arg->Data();
   result->rtyp = NUMBER_CMD;
-  result->data = (void*) temp_test(a);
+  result->data = (void*) temp_test(a);*/
+  if( (arg == NULL) 
+    ||(arg->Typ() != POLY_CMD)) 
+  {
+    WerrorS("usage: TempTest(poly)");
+    return TRUE;
+  }
+  poly gls = (poly) arg->Data();
+  number * pcoeffs = NULL;
+  int deg = poly2numbers(gls,pcoeffs,currRing, currRing->cf);
+  
+  poly out = numbers2poly(pcoeffs, deg, currRing->cf, currRing);
+  result->rtyp = POLY_CMD;
+  result->data = (void*) out;
+  
   return FALSE;
 }
 
@@ -818,6 +832,7 @@ static BOOLEAN t2_norm(leftv result, leftv arg)
     WerrorS("usage: t2norm(poly, int)");
     return TRUE;
   }
+  poly in =((poly)arg->Data());
   arg = arg->next;
   if( (arg == NULL) 
     ||(arg->Typ() != INT_CMD)) 
@@ -826,7 +841,6 @@ static BOOLEAN t2_norm(leftv result, leftv arg)
     return TRUE;
   }
   int prec = (int)(long) arg->Data();
-  poly in =((poly)arg->Data());
   number out = t2norm(in,currRing,currRing->cf,prec);
   result->rtyp = NUMBER_CMD;
   result->data = (void*) out;
