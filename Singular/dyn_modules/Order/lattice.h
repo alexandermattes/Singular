@@ -193,7 +193,7 @@ bool is_primitive(bigintmat * element,int r1, int precision, poly out, const rin
 
 
 //poly to number array and vice versa
-int poly2numbers(poly gls,number * pcoeffs,ring polyring, coeffs coef);
+int poly2numbers(poly gls,number * &pcoeffs,ring polyring, coeffs coef);
 poly numbers2poly(number * univpol, int deg, coeffs coef, ring polyring);
 
 //T2-norm

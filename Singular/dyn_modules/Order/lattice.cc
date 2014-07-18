@@ -2238,7 +2238,7 @@ bool is_primitive(bigintmat * element,int r1, int precision, poly out, const rin
     int var = p_IsUnivariate(testpoly, polyring);
     poly diff_testpoly = p_Diff(testpoly, var, polyring);
     poly test = singclap_gcd(testpoly, diff_testpoly, polyring);
-    if(pLength(test)==1){//test if
+    if(p_Deg(test,polyring)<=1){//test if degree less than 1
         //Delete things
         out = numbers2poly(polycoef,deg,coef,polyring);
         return true;
@@ -2248,15 +2248,20 @@ bool is_primitive(bigintmat * element,int r1, int precision, poly out, const rin
     
 }
 
-int poly2numbers(poly gls,number * pcoeffs,ring polyring, coeffs coef){
+int poly2numbers(poly gls,number * &pcoeffs,ring polyring, coeffs coef){
     DEBUG_PRINT(("poly2numbers\n"));
     if(gls == NULL){
         WerrorS("No Input!");
         return -1;
     }
+    if(pcoeffs!=NULL){
+        WerrorS("Some data in array of number");
+        return -1;
+    }
     //int ldummy;
     DEBUG_PRINT(("degree\n"));
-    long deg = p_Deg(gls,polyring);
+    int deg = (int) p_Totaldegree(gls,polyring);
+    DEBUG_VAR(deg);
     DEBUG_PRINT(("univ\n"));
     int vpos = p_IsUnivariate(gls, polyring);
     if(vpos == -1){
@@ -2264,20 +2269,20 @@ int poly2numbers(poly gls,number * pcoeffs,ring polyring, coeffs coef){
         return -1;
     }
     poly piter = gls;
-    pcoeffs = (number *)omAlloc( (deg+1) * sizeof( number ) );
+    pcoeffs = (number *) omAlloc0( (deg+1) * sizeof( number ) );
     nMapFunc f = n_SetMap(polyring->cf,coef);
     DEBUG_PRINT(("iterate\n"));
     for (int i= deg; i >= 0; i-- ) {
-        if ( piter && pTotaldegree(piter) == i ) {
+        if ( piter && p_Totaldegree(piter,polyring) == i ) {
             number temp = n_Copy( p_GetCoeff( piter, polyring), polyring->cf );
-            pcoeffs[i]= f(temp,polyring->cf,coef);
+            pcoeffs[i] = f(temp,polyring->cf,coef);
             n_Delete(&temp,polyring->cf);
             pIter( piter );
         } else {
             pcoeffs[i]= n_Init(0,coef);
         }
-        //DEBUG_VAR(i);
-        //DEBUG_N(pcoeffs[i]);
+        DEBUG_VAR(i);
+        DEBUG_N(pcoeffs[i]);
     }
     DEBUG_PRINT(("finished\n"));
     return deg;
@@ -2401,7 +2406,7 @@ number t2norm(number * pol, int deg, coeffs coef, int precision){
 
 number t2norm(poly polynom, ring polyring, coeffs coef, int precision){
     DEBUG_PRINT(("t2 norm poly\n"));
-    number * univpol;
+    number * univpol = NULL;
     int deg = poly2numbers(polynom,univpol,polyring, coef);
     number norm = t2norm(univpol,deg,coef,precision);
     for(int i=0;i<deg;i++){
@@ -2438,4 +2443,5 @@ number elementary_symmetric_function(number * roots, int deg, int si, int lower_
         return sum;
     }
 }
+
 

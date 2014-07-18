@@ -524,7 +524,7 @@ static BOOLEAN smithtest(leftv result, leftv arg)
 //Temporary testfunction to play arround with new functions
 //NOTE: remove later
 static BOOLEAN tempTest(leftv result, leftv arg)
-{ /*
+{ 
   if( (arg == NULL) 
     ||(arg->Typ() != NUMBER_CMD)) 
   {
@@ -533,23 +533,7 @@ static BOOLEAN tempTest(leftv result, leftv arg)
   }
   number a = (number) arg->Data();
   result->rtyp = NUMBER_CMD;
-  result->data = (void*) temp_test(a);*/
-  if( (arg == NULL) 
-    ||(arg->Typ() != POLY_CMD)) 
-  {
-    WerrorS("usage: TempTest(poly)");
-    return TRUE;
-  }
-  poly gls = (poly) arg->Data();
-  number * pcoeffs;
-  int deg = poly2numbers(gls,pcoeffs,currRing, currRing->cf);
-  for(int i=0;i<=deg;i++){
-      n_Print(pcoeffs[i],currRing->cf);
-  }
-  poly out = numbers2poly(pcoeffs, deg, currRing->cf, currRing);
-  result->rtyp = POLY_CMD;
-  result->data = (void*) out;
-  
+  result->data = (void*) temp_test(a);
   return FALSE;
 }
 
