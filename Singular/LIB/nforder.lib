@@ -25,6 +25,7 @@ proc EquationOrder(poly f)
 RETURN:  the equation order defined by f which should be irreducible,hence ZZ[t]/(f)
 "
 {
+  "Start EquationOrder";
   list l, B;
   ideal I = std(f);
   poly g;
@@ -45,7 +46,7 @@ RETURN:  the equation order defined by f which should be irreducible,hence ZZ[t]
 example
 { "EXAMPLE:";
     LIB "nforder.so";
-    cring a, aa;
+    cring a;
 
     ring r=(ZZ),x,dp;
     poly f = x^3-13*x+27*169;

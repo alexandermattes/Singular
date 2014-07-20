@@ -524,7 +524,7 @@ static BOOLEAN smithtest(leftv result, leftv arg)
 //Temporary testfunction to play arround with new functions
 //NOTE: remove later
 static BOOLEAN tempTest(leftv result, leftv arg)
-{ /*
+{ 
   if( (arg == NULL) 
     ||(arg->Typ() != NUMBER_CMD)) 
   {
@@ -533,20 +533,20 @@ static BOOLEAN tempTest(leftv result, leftv arg)
   }
   number a = (number) arg->Data();
   result->rtyp = NUMBER_CMD;
-  result->data = (void*) temp_test(a);*/
-  if( (arg == NULL) 
-    ||(arg->Typ() != POLY_CMD)) 
-  {
-    WerrorS("usage: TempTest(poly)");
-    return TRUE;
-  }
-  poly gls = (poly) arg->Data();
-  number * pcoeffs = NULL;
-  int deg = poly2numbers(gls,pcoeffs,currRing, currRing->cf);
-  
-  poly out = numbers2poly(pcoeffs, deg, currRing->cf, currRing);
-  result->rtyp = POLY_CMD;
-  result->data = (void*) out;
+  result->data = (void*) temp_test(a);
+//   if( (arg == NULL) 
+//     ||(arg->Typ() != POLY_CMD)) 
+//   {
+//     WerrorS("usage: TempTest(poly)");
+//     return TRUE;
+//   }
+//   poly gls = (poly) arg->Data();
+//   number * pcoeffs = NULL;
+//   int deg = poly2numbers(gls,pcoeffs,currRing, currRing->cf);
+//   
+//   poly out = numbers2poly(pcoeffs, deg, currRing->cf, currRing);
+//   result->rtyp = POLY_CMD;
+//   result->data = (void*) out;
   
   return FALSE;
 }
@@ -851,7 +851,7 @@ extern "C" int mod_init(SModulFunctions* psModulFunctions)
 {
   //load nforder.lib for additional procedures
   //NOTE: is this the correct way to do it?
-  iiLibCmd(omStrDup("./LIB/nforder.lib"), TRUE,TRUE,TRUE);
+  iiLibCmd(omStrDup("nforder.lib"), TRUE,TRUE,TRUE);
   
   nforder_Register();
   nforder_ideal_bb_setup();

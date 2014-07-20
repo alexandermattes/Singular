@@ -2071,13 +2071,26 @@ number squareroot(number a, coeffs coef, int prec){
 //       Get nice Polynomial        ///
 ///////////////////////////////////////
 poly get_nice_poly(poly polynom){
+    DEBUG_PRINT(("Start get_nice_poly\n"));
     //primes<1000
-    idhdl EquationOrder=ggetid("EquationOrder");/// ? No equationorder
+    
+    //Use EquationOrder from nforder.lib
+    //works because of iiLibCmd(omStrDup("nforder.lib"), TRUE,TRUE,TRUE) in singular.cc
+    
+    idhdl EquationOrder=ggetid("EquationOrder");
+    
+    if(EquationOrder == NULL){
+        WerrorS("EquationOrder not found\n");
+        return NULL;
+    }
+    
     leftv arg = new sleftv();
     arg->rtyp = POLY_CMD;
     arg->data = (void*) polynom;
-    if((EquationOrder == NULL) || !(iiMake_proc(EquationOrder,NULL,arg)) ){//need to be in package nforder.so and  NULL should be nforder.so ...
-        WerrorS("No equationorder\n");
+    
+    if(!(iiMake_proc(EquationOrder,NULL,arg))){
+        WerrorS("Error using EquationOrder\n");
+        return NULL;
     }
     nforder * maxord = (nforder * ) iiRETURNEXPR.Data();//order from poly
     iiRETURNEXPR.CleanUp();
@@ -2113,7 +2126,8 @@ poly get_nice_poly(poly polynom){
     n_Delete(&div,currRing->cf);
     n_Delete(&temp2,coef);
     
-    int precision = 42;//the answer to life, the universe and everything is always a good start
+    
+    int precision = 42;//magic number
     lattice * latticeNF =NULL;
     int r1 = minkowski(basis,poly_in,deg,coef,precision,latticeNF);
     number c = NULL;
@@ -2248,7 +2262,7 @@ bool is_primitive(bigintmat * element,int r1, int precision, poly out, const rin
 }
 
 int poly2numbers(poly gls,number * &pcoeffs,ring polyring, coeffs coef){
-    DEBUG_PRINT(("poly2numbers\n"));
+    DEBUG_PRINT(("Start poly2numbers\n"));
     if(gls == NULL){
         WerrorS("No Input!");
         return -1;
@@ -2288,7 +2302,7 @@ int poly2numbers(poly gls,number * &pcoeffs,ring polyring, coeffs coef){
 }
 
 poly numbers2poly(number * univpol, int deg, coeffs coef, ring polyring){
-    DEBUG_PRINT(("numbers2poly\n"));
+    DEBUG_PRINT(("Start numbers2poly\n"));
     poly result= NULL;
     poly ppos;
     nMapFunc f = n_SetMap(coef,polyring->cf);

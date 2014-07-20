@@ -11,6 +11,8 @@ void test_Enumerate(coeffs coef);
 
 void test_Minkowski();
 
+void test_Poly();
+
 void memorytest();
 
 int average_length(bigintmat * m);

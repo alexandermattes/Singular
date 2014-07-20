@@ -24,8 +24,9 @@ number temp_test(number a) {
 //     PrintS("\n\n\n");
 //     test_Enumerate(currRing->cf);
 //     PrintS("\n\n\n");
-    test_LLL();
+//     test_LLL();
         
+       test_Poly();
 //     coeffs coef = nInitChar(n_R, NULL);
 //     number t = n_Div(n_Init(110,coef),n_Init(100,coef),coef);
 //     n_Print(t,coef);
@@ -343,6 +344,29 @@ void test_Minkowski() {
 //         delete l;
 //     }
 }
+
+
+
+void test_Poly() {
+    ring r = currRing;
+    coeffs coef = r->cf;
+    int deg = 3;
+    
+    number * univpol = new number[3+1]; 
+    for(int j=0; j<=deg; j++) {
+        univpol[j] = n_Init(1,coef);
+    }
+    
+    poly f = numbers2poly(univpol, deg, coef, r);
+    poly g = get_nice_poly(f);
+}
+
+
+
+
+
+
+
 
 int average_length(bigintmat * m) {
     coeffs coef = nInitChar(n_Q,0);

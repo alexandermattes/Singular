@@ -172,12 +172,16 @@ class lattice {
         
 };
 
+//NOTE: Most of the following procedures should be moved to somewhere else
+
 
 //NOTE: could be moved to bigintmat
 number scalarproduct(bigintmat * a, bigintmat * b);
 
+//NOTE: should be moved to somewhere else
 number round(number r, coeffs coef);
 
+//NOTE: could be moved to bigintmat
 void bimnlNormalize(bigintmat * m);
 
 
