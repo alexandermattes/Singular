@@ -120,12 +120,15 @@ class lattice {
         //for Integral MLLL, see Cohen 2.6.7 and 2.6.8
         inline void gram_schmidt_MLLL_integral(int k);
         
+        //to get the next lattice element lower than the given bound starting with x an return the norm of the element
         inline number enumerate_get_next();
         
+        //algorithm 4.4 from the script of Prof. Fieker of "Algorithmic Number Theory"
         inline bool quadratic_supplement();
         
         inline void increase_x(int index);
         
+        //checks that x is lower than the given bound
         inline number check_bound(int index);
 
     public:
@@ -148,26 +151,38 @@ class lattice {
         //Cohen Chapter 2.6
         bool LLL(number& c, coeffs c_coef, bool trans_matrix=true, bool integral=false, bool independentVectors=false);
         
+        //return the number of rows
         inline int get_dim() {return n;};
         
+        //return the basis from which the lattic was generated
         bigintmat * get_basis();
         
+        //return a LLL reduced basis, after LLL was computed or NULL
         bigintmat * get_reduced_basis();
         
+        //return the transformation matrix to get from basis to a LLL reduced basis if LLL was computed
         bigintmat * get_transformation_matrix();
         
+        //return the gram matrix of the lattice
         bigintmat * get_gram_matrix();
-         
+        
+        //return an element of the lattice which is a linear combination of basis with x
         bigintmat * get_lattice_element(bigintmat * x);
         
+        //all enumeration assume the last nonzero element is greater 0, it starts at the lowest index
+        //return a matrix with all lattice elements lower than a sorted by their length but at most 10^6 elements
         bigintmat * enumerate_all(number a);
         
+        // return next element in lattice lower than a with basis representation close to x where the last nonzero element is greater 0 
         bigintmat * enumerate_next(number a, bigintmat * x);
         
+        // return next element in lattice lower than a close to 0 or to x if it was defined
         bigintmat * enumerate_next(number a);
         
+        // return next element in lattice with basis representation close to x if a was given
         bigintmat * enumerate_next(bigintmat * x);
         
+        //return next element with given bound until none will found it return NULL
         bigintmat * enumerate_next();
                 
 };
@@ -185,26 +200,45 @@ number round(number r, coeffs coef);
 void bimnlNormalize(bigintmat * m);
 
 
-//minkowski
+//return r1 and latticeNF defined by mapping all elements to the conjugates in the number field defined by poly
 int minkowski(bigintmat * basiselements, number * poly,int deg, coeffs coef, int precision, lattice * latticeNF);
+
+//test if a is real
 bool IsReal(number a, coeffs coef);
+
+// test if the imaginary part of a is greater zero
 bool ImagGreaterZero(number a, coeffs coef);
+
+// return the squareroot of a computed by the heron algorithm
 number squareroot(number a, coeffs coef, int iteration);// iteration in Heron algorithm
 
 //get nice polynom for field over Q
 poly get_nice_poly(poly polynom_in);
+
+//test if an element from a lattice generated from an order is has a primitive root
 bool is_primitive(bigintmat * element,int r1, int precision, poly out, const ring polyring);
 
 
 //poly to number array and vice versa
+
+//maps poly to an array of coefficients
 number * poly2numbers(poly gls, ring polyring, coeffs coef);
+
+//return a polynomial over polyring from an array of number which represent the coefficents 
 poly numbers2poly(number * univpol, int deg, coeffs coef, ring polyring);
 
+
 //T2-norm
+//return the T2-norm of an element mapped with minkowski
 number t2norm(bigintmat * elt);
+
+//return T2-norm of an polynomial definded by pol with precision
 number t2norm(number * pol, int deg, coeffs coef, int precision);
+
+//return T2-norm of polynom with precision
 number t2norm(poly polynom, ring polyring, coeffs coef, int precision);
 
+//
 number elementary_symmetric_function(number * roots, int deg, int si, int lower_bound, coeffs coef);
 
 
