@@ -53,3 +53,11 @@ example
     a = EquationOrder(f);
     pMaximalOrder(a, 5*13);
 }
+
+
+
+proc myGCD(poly f, poly g)
+{
+  "Start myGCD";
+  return(gcd(f,g));
+}

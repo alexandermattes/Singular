@@ -71,7 +71,7 @@ public:
   ////////////////////////////////////
   
   number getDisc();
-  inline number viewDisc(){return discriminant;};
+  inline number viewDisc(){return discriminant;}; //NOTE dangerous!
   int getDim();
   inline coeffs basecoeffs() const { return m_coeffs; }
   number getDiv();

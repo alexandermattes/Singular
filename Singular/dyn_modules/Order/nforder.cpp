@@ -625,12 +625,14 @@ nforder *onestep(nforder *o, number p, coeffs c) {
 }
 
 nforder *pmaximal(nforder *o, number p) {
+  PrintS("pmaximal\n");
   coeffs c = o->basecoeffs();
   nforder *no = o;
   nforder *otemp;
   // TODO: check if p^2 still divides disc (maybe in onestep)
   // simplify the tower
   do {
+    PrintS("do\n");
     otemp = no;
     no = onestep(otemp, p, c);
     if (no==otemp)

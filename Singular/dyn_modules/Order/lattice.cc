@@ -1,6 +1,6 @@
 #include <libpolys/coeffs/bigintmat.h>
 #include "lattice.h"
-#include"reporter/reporter.h"  // for Print, WerrorS
+#include "reporter/reporter.h"  // for Print, WerrorS
 #include "libpolys/coeffs/numbers.h" 
 #include "libpolys/coeffs/coeffs.h"
 #include "Singular/ipid.h"
@@ -177,6 +177,42 @@ lattice::~lattice() {
         
     DEBUG_PRINT(("Done\n"));
 }
+
+
+///////////////////////////////////////
+//      Write / String / Print      ///
+///////////////////////////////////////
+
+void lattice::Write() {
+    StringAppend("Lattice:\nof dimension %d\n", n);
+    
+    if(only_gram_matrix_given) {
+        StringAppend("defined by gram matrix:\n");
+        bigintmat * gm = get_gram_matrix();
+        gm->Write();
+        delete gm;
+        StringAppend("\n");
+    } else {
+        StringAppend("defined by basis:\n");
+        for(int i=1; i<=n; i++) {
+            StringAppend("%d: ", i);
+            basis[i]->Write();
+            StringAppendS("\n");
+        }
+    }
+}
+
+char * lattice::String() {
+    StringSetS("");
+    Write();
+    return StringEndS();
+}
+// void lattice::Print() {
+//     char * s = String();
+//     PrintS(s);
+//     PrintS("\n");
+//     omFree(s);
+// }
 
 
 ///////////////////////////////////////
@@ -1873,6 +1909,132 @@ number round(number r,coeffs coef) {
         return result;
     }
     
+    if(getCoeffType(coef)==n_long_C){
+        DEBUG_PRINT(("getCoeffType(coef)==n_long_C\n"));
+        
+        number r_real = ngcRePart(r,coef);    
+        number r_imag = ngcImPart(r,coef);
+        
+        
+        if(n_IsZero(r_imag,coef)) {
+            r = r_real;
+        } else {
+            number tmp = n_Sub(r,r_real,coef);
+            number i_unit = n_Div(tmp,r_imag,coef);
+            n_Delete(&tmp,coef);
+            
+            if(n_IsZero(r_real,coef)) {
+                number rounded_imag = round(r_imag,coef);
+                n_InpMult(rounded_imag,i_unit,coef);
+                
+                n_Delete(&r_real,coef);
+                n_Delete(&r_imag,coef);
+                n_Delete(&i_unit,coef);
+                
+                return rounded_imag;
+            } else {
+                number rounded_real = round(r_real,coef);
+                number rounded_imag = round(r_imag,coef);
+                n_InpMult(rounded_imag,i_unit,coef);
+                number result = n_Add(rounded_real,rounded_imag,coef);
+                
+                n_Delete(&rounded_real,coef);
+                n_Delete(&rounded_imag,coef);
+                n_Delete(&r_real,coef);
+                n_Delete(&r_imag,coef);
+                n_Delete(&i_unit,coef);
+                
+                return result;
+            }
+        }
+
+            
+        
+        number n_0    = n_Init( 0,coef);
+        number n_1    = n_Init( 1,coef);
+        number n_neg1 = n_Init(-1,coef);
+        number n_2    = n_Init( 2,coef);
+        
+        number n_1div2    = n_Div(n_1,n_2,coef);
+        
+        number a;
+        if(n_Greater(r,n_0,coef)) {
+            a = n_Copy(r,coef);
+        } else {
+            a = n_Mult(n_neg1,r,coef);
+        }
+        DEBUG_N(a);
+        
+        number v = n_Div(r,a,coef);
+        DEBUG_N(v);
+        
+        number d = n_Init(10,coef);
+        DEBUG_N(d);
+        
+        int e = 0;
+        while(1){
+            e=e+1;
+            DEBUG_VAR(e);
+            
+            number pow;
+            n_Power(d,e,&pow,coef);
+            number diff = n_Sub(a,pow,coef);
+            n_Delete(&pow,coef);
+            if(n_Greater(n_0,diff,coef)){
+                n_Delete(&diff,coef);
+                e=e-1;
+                break;
+            }
+            n_Delete(&diff,coef);
+        }
+
+        number b = n_Copy(a,coef);
+        DEBUG_N(b);
+        
+        for(int k=0;k<=e;k++){
+            DEBUG_VAR(k);
+            
+            number s;
+            n_Power(d,e-k,&s,coef);
+            s = n_InpNeg(s,coef);
+            while(1)
+            {
+                n_InpAdd(b,s,coef);
+                if(n_Greater(n_0,b,coef)){
+                    s = n_InpNeg(s,coef);
+                    n_InpAdd(b,s,coef);
+                    break;
+                }
+            }
+            DEBUG_N(b);
+            n_Delete(&s,coef);
+        }
+        number diff = n_Sub(a,b,coef);
+        number diffmin1 = n_Sub(diff,n_neg1,coef);
+        
+        number result;
+        
+        if(n_Greater(n_1div2,b,coef)){
+            result = n_Mult(v,diff,coef);
+        }else{
+            result = n_Mult(v,diffmin1,coef);
+        }
+        
+        n_Delete(&n_0,coef);
+        n_Delete(&n_1,coef);
+        n_Delete(&n_neg1,coef);
+        n_Delete(&n_2,coef);
+        n_Delete(&n_1div2,coef);
+        n_Delete(&a,coef);
+        n_Delete(&v,coef);
+        n_Delete(&d,coef);
+        n_Delete(&b,coef);
+        
+        DEBUG_N(result);
+        DEBUG_PRINT(("End round\n"));
+        return result;
+    }
+    
     Werror("round is not defined on this ring");
     return NULL;
 }
@@ -1891,15 +2053,17 @@ void bimnlNormalize(bigintmat * m){
 ///////////////////////////////////////
 //         Minkowski map            ///
 ///////////////////////////////////////
+
 int minkowski(bigintmat * basiselements, number * poly,int deg, coeffs coef, int precision, lattice * latticeNF){
     DEBUG_BLOCK(true);
     DEBUG_PRINT(("Begin Minkowski map\n"));
     DEBUG_PRINT(("Input check\n"));
-    DEBUG_PRINT(("clear latticeNF\n"));
-    delete latticeNF;
-    latticeNF = NULL;
+//     DEBUG_PRINT(("clear latticeNF\n"));
+//     delete latticeNF;
+//     latticeNF = NULL;
     
-    if(basiselements == NULL || poly == NULL || coef != basiselements->basecoeffs()){
+    
+    if(basiselements == NULL || poly == NULL || !nCoeffs_are_equal(coef,basiselements->basecoeffs())){
         WerrorS("wrong input!\n");
         return -1;
     }
@@ -1934,11 +2098,14 @@ int minkowski(bigintmat * basiselements, number * poly,int deg, coeffs coef, int
     DEBUG_PRINT(("initialize rootContainer\n"));
     number * rootpoly = new number[deg+1];//doesn't need to be deleted since rootContaine delete it...
     for(int i=0;i<=deg;i++){
+        DEBUG_VAR(i);
         rootpoly[i] = n_Copy(poly[i],coef);
     }
     rootContainer * rootcont= new rootContainer();
-    rootcont->fillContainer( rootpoly, NULL, 1, deg, rootContainer::onepoly, 1 );
-    rootcont->solver( 1);
+    DEBUG_PRINT(("rootcont->fillContainer\n"));
+    rootcont->fillContainer(rootpoly, NULL, 1, deg, rootContainer::onepoly, 1 );
+    DEBUG_PRINT(("irootcont->solver(1)\n"));
+    rootcont->solver(1);
     int number_roots = rootcont ->getAnzRoots();
     if(number_roots != deg){
         WerrorS("something went wrong: \n\tnot all roots found\n");
@@ -1975,16 +2142,23 @@ int minkowski(bigintmat * basiselements, number * poly,int deg, coeffs coef, int
     }
     delete[] complexroots;
     DEBUG_PRINT(("map elementarray to complex\n"));
-    bigintmat * elements =  bimChangeCoeff(basiselements,comp);
+    bigintmat * elements = bimChangeCoeff(basiselements,comp);
     DEBUG_PRINT(("generate output matrix\n"));
     DEBUG_PRINT(("real part\n"));
     bigintmat * complexmat = new bigintmat(r1+2*r2, elements->cols(), comp);
     for(int i=1; i<= r1; i++){
         for(int l=deg; l>0; l--){
             for(int j=1; j<=elements->cols();j++){
-                number val = complexmat->get(i,j+1);
+                DEBUG_VAR(i);
+                DEBUG_VAR(j);
+                DEBUG_VAR(l);
+                number val = complexmat->get(i,j);
+//                 number val = complexmat->get(i,j+1); //NOTE ???
+                 DEBUG_PRINT(("asdas\n"));
                 n_InpMult(val,roots[i-1],comp);
-                complexmat->rawset(i,j+1,n_Add(val,elements->view(j,l),comp),comp);
+                 DEBUG_PRINT(("tzu\n"));
+                complexmat->rawset(i,j,n_Add(val,elements->view(j,l),comp),comp);
+//                 complexmat->rawset(i,j+1,n_Add(val,elements->view(j,l),comp),comp); //NOTE ???
                 n_Delete(&val,comp);
             }
         }
@@ -1997,9 +2171,14 @@ int minkowski(bigintmat * basiselements, number * poly,int deg, coeffs coef, int
         for(int i=1; i<= r2; i++){
             for(int l=deg; l>0; l--){
                 for(int j=1; j<=elements->cols();j++){
-                    number val = complexmat->get(r1+2*i,j+1);
+                    DEBUG_VAR(i);
+                    DEBUG_VAR(j);
+                    DEBUG_VAR(l);
+                    number val = complexmat->get(r1+2*i,j);
+//                     number val = complexmat->get(r1+2*i,j+1); //NOTE
                     n_InpMult(val,roots[i-1],comp);
-                    complexmat->rawset(r1+2*i,j+1,n_Add(val,elements->view(j,l),comp),comp);
+                    complexmat->rawset(r1+2*i,j,n_Add(val,elements->view(j,l),comp),comp);
+//                     complexmat->rawset(r1+2*i,j+1,n_Add(val,elements->view(j,l),comp),comp); //NOTE ???
                     n_Delete(&val,comp);
                 }
             }
@@ -2026,7 +2205,9 @@ int minkowski(bigintmat * basiselements, number * poly,int deg, coeffs coef, int
     delete complexmat;
     nKillChar(comp);
     
-    latticeNF = new lattice(realmat);
+    lattice * l= new lattice(realmat);
+    *latticeNF = *l;
+    
     delete realmat;
     return r1;
 }
@@ -2067,11 +2248,27 @@ number squareroot(number a, coeffs coef, int prec){
     return xn;
 }
 
+
 ///////////////////////////////////////
 //       Get nice Polynomial        ///
 ///////////////////////////////////////
+
 poly get_nice_poly(poly polynom){
     DEBUG_PRINT(("Start get_nice_poly\n"));
+    
+//     {   
+//         ring r = currRing;
+//         coeffs coef = r->cf;
+//         number * pcoeffs = poly2numbers(polynom,r, coef);
+//         int degpolynom = (int) p_Totaldegree(polynom,r);
+//         DEBUG_PRINT(("Input\n"));
+//         for(int i=0; i<=degpolynom; i++) {
+//             n_Print(pcoeffs[i],coef);
+//             PrintS("\n");
+//         }
+//         return NULL;
+//     }
+
     //primes<1000
     
     //Use EquationOrder from nforder.lib
@@ -2084,78 +2281,156 @@ poly get_nice_poly(poly polynom){
         return NULL;
     }
     
+    poly polynomCopy = p_Copy(polynom,currRing);
+    
     leftv arg = new sleftv();
     arg->rtyp = POLY_CMD;
-    arg->data = (void*) polynom;
+    arg->data = (void*) polynomCopy;
     
-    if(!(iiMake_proc(EquationOrder,NULL,arg))){
-        WerrorS("Error using EquationOrder\n");
+    if(iiMake_proc(EquationOrder,NULL,arg)){
+        WerrorS("Error: Can't use EquationOrder\n");
         return NULL;
     }
-    nforder * maxord = (nforder * ) iiRETURNEXPR.Data();//order from poly
+   
+    coeffs R = (coeffs) iiRETURNEXPR.Data();
+//     if (getCoeffType(R) != nforder_type) return FALSE;
+    nforder *  maxord = (nforder*) R->data;
+//     if (cmp && cmp != o) return FALSE;
+    
     iiRETURNEXPR.CleanUp();
-    number * poly_in;
+    
+    DEBUG_PRINT(("\n"));
+    maxord->Print();
+    DEBUG_PRINT(("\n"));
+    
+    
+    
+    
     coeffs coef ;
-    if(nCoeff_is_Ring_Z(coef)) {
-        coef = nInitChar(n_Q,NULL);  
-    } else {
-        coef = currRing->cf;
+//     if(nCoeff_is_Ring_Z(coef)) {
+//         DEBUG_PRINT(("nCoeffis_Ring_Z\n"));
+//         coef = nInitChar(n_Q,NULL);  
+//     } else {
+//         DEBUG_PRINT(("!nCoeffis_Ring_Z\n"));
+//         coef = currRing->cf;
+//     }
+    coef = currRing->cf;
+    
+    {
+        number disc = maxord->getDisc();
+        DEBUG_N(disc);
+        n_Delete(&disc,coef);
     }
-    int deg = poly2numbers(polynom,poly_in,currRing,coef);
+    
+    int deg = (int) p_Totaldegree(polynom,currRing);
+    DEBUG_VAR(deg);
+    
+    number * poly_in = poly2numbers(polynom,currRing,coef);
+    
     
     int primes_1000[] = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233, 239, 241, 251, 257, 263, 269, 271, 277, 281, 283, 293, 307, 311, 313, 317, 331, 337, 347, 349, 353, 359, 367, 373, 379, 383, 389, 397, 401, 409, 419, 421, 431, 433, 439, 443, 449, 457, 461, 463, 467, 479, 487, 491, 499, 503, 509, 521, 523, 541, 547, 557, 563, 569, 571, 577, 587, 593, 599, 601, 607, 613, 617, 619, 631, 641, 643, 647, 653, 659, 661, 673, 677, 683, 691, 701, 709, 719, 727, 733, 739, 743, 751, 757, 761, 769, 773, 787, 797, 809, 811, 821, 823, 827, 829, 839, 853, 857, 859, 863, 877, 881, 883, 887, 907, 911, 919, 929, 937, 941, 947, 953, 967, 971, 977, 983, 991, 997};
     static int size_primes_1000 = 168;
+    
     for(int i=0;i<size_primes_1000;i++){
+//         number d = maxord->getDisc();
+//         if()
+        DEBUG_PRINT(("Maximize for primes_1000[%d]=%d\n",i,primes_1000[i]));
         nforder * temp = maxord;
         number p = n_Init(primes_1000[i],coef);
         maxord = pmaximal(temp, p);
         n_Delete(&p,coef);
-        delete temp;
+//         nforder_delete(temp);
     }
-    nforder * temp = maxord;
-    number p = temp->getDisc();
-    maxord = pmaximal(temp, p);
-    n_Delete(&p,coef);
-    delete temp;
     
+    {
+        nforder * temp = maxord;
+        number p = temp->getDisc();
+        DEBUG_PRINT(("Maximize for temp->getDisc()=%d\n",p));
+        maxord = pmaximal(temp, p);
+        n_Delete(&p,coef);
+//         nforder_delete(temp);
+    }
+    
+    {
+        number disc = maxord->getDisc();
+        DEBUG_N(disc);
+        n_Delete(&disc,coef);
+    }
+    
+   
+   
     bigintmat * basis = bimChangeCoeff(maxord->viewBasis(),coef);
-    nMapFunc f = n_SetMap(currRing->cf,coef);
-    number div = maxord->getDiv();
-    number temp2 = f(div,currRing->cf,coef);
-    basis->skaldiv(temp2);
-    n_Delete(&div,currRing->cf);
-    n_Delete(&temp2,coef);
+//     nMapFunc f = n_SetMap(currRing->cf,coef);
+//     number div = maxord->getDiv();
+//     number temp2 = f(div,currRing->cf,coef);
+//     basis->skaldiv(temp2);
+//     n_Delete(&div,currRing->cf);
+//     n_Delete(&temp2,coef);
     
+
+    DEBUG_PRINT(("maxord->getDiv()\n"));
+    number div = maxord->getDiv();
+//     /D*EBUG_PRINT(("basis->skaldiv(div)\n"));
+//     */basis->skaldiv(div);
     
     int precision = 42;//magic number
-    lattice * latticeNF =NULL;
+    lattice * latticeNF =  (lattice *)omAlloc(sizeof(lattice));
+    
+    DEBUG_BIM(basis);
+    for(int i=0; i<=deg; i++) {
+        DEBUG_N(poly_in[i]);
+    }
+    DEBUG_VAR(precision);
+    
+    
+    
+    
+    DEBUG_VAR(precision);
     int r1 = minkowski(basis,poly_in,deg,coef,precision,latticeNF);
     number c = NULL;
     while(latticeNF->LLL(c,NULL,false,false,true) && precision < 32767){
-        delete latticeNF;
+//         delete latticeNF;
         precision = precision +5;
+        DEBUG_VAR(precision);
         r1 = minkowski(basis,poly_in,deg,coef,precision,latticeNF);
     }
     
     
     bigintmat * LLLbasis = latticeNF->get_reduced_basis();
+    DEBUG_BIM(LLLbasis);
+    
     coeffs real = LLLbasis->basecoeffs();
+    
     number bound = t2norm(polynom,currRing,real,precision);
-    poly reduced_poly = NULL;
+    DEBUG_PRINT(("bound: "));
+    DEBUG_CMD(n_Print(bound,real));
+    DEBUG_PRINT(("\n"));
+    
+    poly reduced_poly = (poly) omAlloc(sizeof(poly));
     ///check for primitive element in LLLbasis
     for(int j=1;j<=deg;j++){
-        bigintmat * testelement; 
+        DEBUG_VAR(j);
+        bigintmat * testelement = new bigintmat(LLLbasis->rows(),1,real); 
         LLLbasis->getcol(j,testelement);
+        
+        DEBUG_BIM(testelement);
+        
         number testnorm = t2norm(testelement);
-        if(n_Greater(testnorm,bound,coef)){
+        DEBUG_PRINT(("testnorm: "));
+        DEBUG_CMD(n_Print(testnorm,real));
+        DEBUG_PRINT(("\n"));
+        
+        if(n_Greater(testnorm,bound,real)){
+            DEBUG_PRINT(("n_Greater(testnorm,bound,real)\n"));
             delete testelement;
             break;
         }
         if(is_primitive(testelement, r1, precision, reduced_poly, currRing)){
+            DEBUG_PRINT(("is_primitive(testelement, r1, precision, reduced_poly, currRing)\n"));
             n_Delete(&bound,real);
             delete latticeNF;
             delete LLLbasis;
-            return NULL;//correct
+            return reduced_poly; //return NULL; //correct   NOTE: ????
         }
         delete testelement;
     }
@@ -2187,7 +2462,7 @@ poly get_nice_poly(poly polynom){
 }
 
 bool is_primitive(bigintmat * element,int r1, int precision, poly out, const ring polyring){
-    return true;
+//     return true;
     
     //check if all numbers in minkowski element are diffrent
     coeffs coef = element->basecoeffs();
@@ -2237,52 +2512,135 @@ bool is_primitive(bigintmat * element,int r1, int precision, poly out, const rin
     number * polycoef = new number[deg+1];
     
     nMapFunc g = n_SetMap(comp, coef);
+    
+    DEBUG_VAR(deg);
     for(int i=0;i<deg;i++){
+        DEBUG_VAR(i);
         number temp = elementary_symmetric_function(roots,deg,i+1,0,comp);
         number temp2 = ngcRePart(temp,comp);
         n_Delete(&temp,comp);
         temp = round(temp2,comp);
         polycoef[i] = g(temp,comp,coef);
+        DEBUG_N(polycoef[i]);
         n_Delete(&temp,comp);
         n_Delete(&temp2,comp);
     }
     polycoef[deg] = n_Init(1,coef);
     poly testpoly = numbers2poly(polycoef,deg,coef,polyring);
+    
     int var = p_IsUnivariate(testpoly, polyring);
     poly diff_testpoly = p_Diff(testpoly, var, polyring);
-    poly test = singclap_gcd(testpoly, diff_testpoly, polyring);
-    if(p_Deg(test,polyring)<=1){//test if degree less than 1
-        //Delete things
-        out = numbers2poly(polycoef,deg,coef,polyring);
-        return true;
-    }
-    //delete things
-    return false;
     
+  /*  
+    
+    
+//     poly test = singclap_gcd(p_Copy(testpoly,polyring), p_Copy(diff_testpoly,polyring), polyring);
+    
+    
+    
+//     int err;
+// 
+//     // calling a kernel function via the interpreter interface
+//     sleftv zu; memset(&zu,0,sizeof(zu));
+//     sleftv arg; memset(&arg,0,sizeof(zu));
+//     arg.rtyp=STRING_CMD;
+//     arg.data=omStrDup("9+3");
+//     err=iiExprArith1(&zu,&arg,TYPEOF_CMD);
+// 
+//     printf("interpreter returns %d\n",err);
+//     if (err)
+//         errorreported = 0; // reset error handling
+//     else
+//         printf("typeof returned type %d, >>%s<<\n",zu.Typ(),zu.Data());
+// 
+//     // clean up zu:
+//     zu.CleanUp();
+// 
+//     return 0;
+    
+    
+    
+    idhdl myGCD=ggetid("myGCD");
+    
+    if(myGCD == NULL){
+        WerrorS("myGCD not found\n");
+        return NULL;
+    }
+    
+    poly testpoly_copy = p_Copy(testpoly,polyring);
+    
+    leftv arg = new sleftv();
+    arg->rtyp = POLY_CMD;
+    arg->data = (void*) testpoly_copy;
+    
+//     leftv arg2 = new sleftv();
+//     arg2->rtyp = POLY_CMD;
+//     arg2->data = (void*) p_Copy(diff_testpoly,polyring);
+//     
+//     arg->next = arg2;
+    
+    if(iiMake_proc(myGCD,NULL,arg)){
+        WerrorS("Error: Can't use myGCD\n");
+        return NULL;
+    }
+   
+    printf("iiMake_proc: myGCD type %d, >>%s<<\n", iiRETURNEXPR.Typ(), (char *)iiRETURNEXPR.Data());
+    
+    poly test = (poly) iiRETURNEXPR.Data();
+    
+    
+    iiRETURNEXPR.CleanUp();
+    
+    
+    
+    
+    */
+    
+    
+//     number * pcoeffs = poly2numbers(test,polyring, coef);
+//     int degg = (int) p_Totaldegree(test,polyring);
+//     for(int i=0; i<=degg; i++) {
+//         n_Print(pcoeffs[i],coef);
+//         PrintS("\n");
+//     }
+    
+//     DEBUG_PRINT(("trz\n"));
+//     DEBUG_VAR(p_Deg(test,polyring));
+//     if(p_Deg(test,polyring)<=1){//test if degree less than 1
+//         //Delete things
+//         DEBUG_PRINT(("p_Deg(test,polyring)<=1\n"));
+        *out = *numbers2poly(polycoef,deg,coef,polyring);
+        return true;
+//     }
+//     DEBUG_PRINT(("sdfs\n"));
+//     //delete things
+//     return false;   
 }
 
-int poly2numbers(poly gls,number * &pcoeffs,ring polyring, coeffs coef){
+number * poly2numbers(poly gls, ring polyring, coeffs coef){
     DEBUG_PRINT(("Start poly2numbers\n"));
     if(gls == NULL){
         WerrorS("No Input!");
-        return -1;
+        return NULL;
     }
-    if(pcoeffs!=NULL){
-        WerrorS("Some data in array of number");
-        return -1;
-    }
-    //int ldummy;
+     
+
     DEBUG_PRINT(("degree\n"));
     int deg = (int) p_Totaldegree(gls,polyring);
     DEBUG_VAR(deg);
+    
+    
+    number * pcoeffs = (number *) omAlloc0((deg+1) * sizeof(number));
+    
+    
     DEBUG_PRINT(("univ\n"));
     int vpos = p_IsUnivariate(gls, polyring);
     if(vpos <= 0){
         WerrorS("not univariate");
-        return -1;
+        return NULL;
     }
     poly piter = gls;
-    pcoeffs = (number *) omAlloc0( (deg+1) * sizeof( number ) );
+    
     nMapFunc f = n_SetMap(polyring->cf,coef);
     DEBUG_PRINT(("iterate\n"));
     for (int i= deg; i >= 0; i-- ) {
@@ -2298,7 +2656,7 @@ int poly2numbers(poly gls,number * &pcoeffs,ring polyring, coeffs coef){
         DEBUG_N(pcoeffs[i]);
     }
     DEBUG_PRINT(("finished\n"));
-    return deg;
+    return pcoeffs;
 }
 
 poly numbers2poly(number * univpol, int deg, coeffs coef, ring polyring){
@@ -2372,6 +2730,7 @@ number t2norm(number * pol, int deg, coeffs coef, int precision){
     char* n[] = {(char*)"x"};///
     ring newring = rDefault(coef, 1, n);
     rChangeCurrRing(newring);
+    
     DEBUG_PRINT(("initialize rootContainer\n"));
     number * rootpoly = new number[deg+1];//doesn't need to be deleted since rootContaine delete it...
     for(int i=0;i<=deg;i++){
@@ -2379,13 +2738,15 @@ number t2norm(number * pol, int deg, coeffs coef, int precision){
     }
     rootContainer * rootcont= new rootContainer();
     rootcont->fillContainer( rootpoly, NULL, 1, deg, rootContainer::onepoly, 1 );
-    rootcont->solver( 1);
+    DEBUG_PRINT(("rootcont->solver(1);\n"));
+    rootcont->solver(1);
     int number_roots = rootcont ->getAnzRoots();
     if(number_roots != deg){
         WerrorS("something went wrong: \n\tnot all roots found\n");
         return NULL;
     }
     LongComplexInfo paramComp = {si_min (precision+6, 32767),si_min (precision+8, 32767),(const char*)"i"};
+    
     
     coeffs comp = nInitChar(n_long_C, &paramComp);
     number sumcomp = n_Init(0,comp);
@@ -2419,8 +2780,10 @@ number t2norm(number * pol, int deg, coeffs coef, int precision){
 
 number t2norm(poly polynom, ring polyring, coeffs coef, int precision){
     DEBUG_PRINT(("t2 norm poly\n"));
-    number * univpol = NULL;
-    int deg = poly2numbers(polynom,univpol,polyring, coef);
+    
+    int deg = (int) p_Totaldegree(polynom,polyring);
+    number * univpol = poly2numbers(polynom,polyring,coef);
+
     if(deg == -1){
         WerrorS("Not an univariate polynomial");
         return NULL;
@@ -2434,7 +2797,7 @@ number t2norm(poly polynom, ring polyring, coeffs coef, int precision){
 }
 
 number elementary_symmetric_function(number * roots, int deg, int si, int lower_bound, coeffs coef){
-    if (si <= 0 || si<= deg){
+    if (si < 1 || si > deg){
         WerrorS("it should 1<=si<=deg");
         return n_Init(0,coef);
     }

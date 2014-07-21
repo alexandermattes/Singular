@@ -77,9 +77,7 @@ class lattice {
         
         //coef for output
         coeffs fieldcoef;
-        
-//         int precision;
-    
+            
         //modify gram_matrix_content
         inline void gram_matrix_rawset(int i,int j, number n);
         
@@ -122,9 +120,6 @@ class lattice {
         //for Integral MLLL, see Cohen 2.6.7 and 2.6.8
         inline void gram_schmidt_MLLL_integral(int k);
         
-//         inline void INSERT(int k, int i);
-//         inline bool gram_matrix(int k);
-                
         inline number enumerate_get_next();
         
         inline bool quadratic_supplement();
@@ -142,11 +137,18 @@ class lattice {
         //destructor
         ~lattice();
         
+        
+        void Write();
+        char* String();
+//         void Print();
+        
         //LLL with c=3/4 and auto for other flags
         bool LLL();
         
         //Cohen Chapter 2.6
         bool LLL(number& c, coeffs c_coef, bool trans_matrix=true, bool integral=false, bool independentVectors=false);
+        
+        inline int get_dim() {return n;};
         
         bigintmat * get_basis();
         
@@ -167,9 +169,7 @@ class lattice {
         bigintmat * enumerate_next(bigintmat * x);
         
         bigintmat * enumerate_next();
-        
-//         void set_precision(int a);
-        
+                
 };
 
 //NOTE: Most of the following procedures should be moved to somewhere else
@@ -197,7 +197,7 @@ bool is_primitive(bigintmat * element,int r1, int precision, poly out, const rin
 
 
 //poly to number array and vice versa
-int poly2numbers(poly gls,number * &pcoeffs,ring polyring, coeffs coef);
+number * poly2numbers(poly gls, ring polyring, coeffs coef);
 poly numbers2poly(number * univpol, int deg, coeffs coef, ring polyring);
 
 //T2-norm

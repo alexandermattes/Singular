@@ -244,13 +244,15 @@ static void * lattice_Copy(blackbox* /*b*/, void *d)
 }
 
 
-static char * lattice_String(blackbox */*b*/, void */*d*/)
+static char * lattice_String(blackbox */*b*/, void *d)
 {
-  return NULL;   //NOTE
-}
-
-static void lattice_Print(blackbox */*b*/, void */*d*/)
-{
+  StringSetS("");
+  if(d){
+    ((lattice *)d)->Write();
+  } else {
+    StringAppendS("o not defined o");
+  }
+  return StringEndS();
 }
 
 static BOOLEAN lattice_Assign(leftv l, leftv r)
@@ -541,14 +543,14 @@ static BOOLEAN tempTest(leftv result, leftv arg)
 //     return TRUE;
 //   }
 //   poly gls = (poly) arg->Data();
-//   number * pcoeffs = NULL;
-//   int deg = poly2numbers(gls,pcoeffs,currRing, currRing->cf);
-//   
+//   number * pcoeffs = poly2numbers(gls,currRing, currRing->cf);
+//   int deg = (int) p_Totaldegree(gls,currRing);
+//     
 //   poly out = numbers2poly(pcoeffs, deg, currRing->cf, currRing);
 //   result->rtyp = POLY_CMD;
 //   result->data = (void*) out;
-  
-  return FALSE;
+//   
+//   return FALSE;
 }
 
 static BOOLEAN bimToCurrRing(leftv result, leftv arg)
