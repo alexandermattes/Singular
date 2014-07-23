@@ -2475,6 +2475,21 @@ bool nCoeffs_are_equal(coeffs r, coeffs s) {
     return true;
   // FALL n_Zn FEHLT NOCH!
     //if ((getCoeffType(r)==n_Zn) && (getCoeffType(s)==n_Zn))
+
+////NOTE:temporary solution, which is possibly wrong or doesn't check enough parameters
+  if ((getCoeffType(r)==n_long_R) && (getCoeffType(s)==n_long_R)){
+    if (r->float_len == s->float_len && r->float_len2 == s->float_len2)
+      return true;
+    else
+      return false;
+  }
+  if ((getCoeffType(r)==n_R) && (getCoeffType(s)==n_R)){
+    if (r->float_len == s->float_len && r->float_len2 == s->float_len2)
+      return true;
+    else
+      return false;
+  }
+////
   return false;
 }
 

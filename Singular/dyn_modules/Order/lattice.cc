@@ -24,13 +24,13 @@
 //         Debugging Stuff          ///
 ///////////////////////////////////////
 
- #define DEBUG_PRINTS 1 //remove this line to disable debugging
+ #define DEBUG_PRINTS 0 //remove this line to disable debugging
 #ifdef DEBUG_PRINTS
 
   //DEBUG_BLOCK(true / false); to enable/disable debugging in this block
 # define DEBUG_BLOCK(x) bool debug_block = x; 
   //standard if DEBUG_BLOCK( ); not used
-  static bool debug_block = true;
+  static bool debug_block = false;
   //use like: DEBUG_PRINT(("Status %d",i))
 # define DEBUG_PRINT(x) do {if(debug_block) {Print x ;}} while(0)
 # define DEBUG_CMD(x) do {if(debug_block) {x;}} while(0)
@@ -265,7 +265,7 @@ void lattice::delete_LLL_computations(){
 }
 
 void lattice::print_all_in_LLL(){
-    DEBUG_BLOCK(true);
+//    DEBUG_BLOCK(true);
     
     if(b != NULL) {
         for(int i=1; i<=n;i++){
@@ -2055,7 +2055,7 @@ void bimnlNormalize(bigintmat * m){
 ///////////////////////////////////////
 
 int minkowski(bigintmat * basiselements, number * poly,int deg, coeffs coef, int precision, lattice * latticeNF){
-    DEBUG_BLOCK(true);
+//    DEBUG_BLOCK(true);
     DEBUG_PRINT(("Begin Minkowski map\n"));
     DEBUG_PRINT(("Input check\n"));
 //     DEBUG_PRINT(("clear latticeNF\n"));
@@ -2254,20 +2254,12 @@ number squareroot(number a, coeffs coef, int prec){
 ///////////////////////////////////////
 
 poly get_nice_poly(poly polynom){
+    DEBUG_BLOCK(true);
     DEBUG_PRINT(("Start get_nice_poly\n"));
-    
-//     {   
-//         ring r = currRing;
-//         coeffs coef = r->cf;
-//         number * pcoeffs = poly2numbers(polynom,r, coef);
-//         int degpolynom = (int) p_Totaldegree(polynom,r);
-//         DEBUG_PRINT(("Input\n"));
-//         for(int i=0; i<=degpolynom; i++) {
-//             n_Print(pcoeffs[i],coef);
-//             PrintS("\n");
-//         }
-//         return NULL;
-//     }
+    if ( !(nCoeff_is_Ring_Z(currRing->cf) || nCoeff_is_Q(currRing->cf) ) ){
+        WerrorS("Ground ring not implemented!\n");
+        return NULL;
+    }
 
     //primes<1000
     
@@ -2293,9 +2285,7 @@ poly get_nice_poly(poly polynom){
     }
    
     coeffs R = (coeffs) iiRETURNEXPR.Data();
-//     if (getCoeffType(R) != nforder_type) return FALSE;
     nforder *  maxord = (nforder*) R->data;
-//     if (cmp && cmp != o) return FALSE;
     
     iiRETURNEXPR.CleanUp();
     
@@ -2307,14 +2297,13 @@ poly get_nice_poly(poly polynom){
     
     
     coeffs coef ;
-//     if(nCoeff_is_Ring_Z(coef)) {
-//         DEBUG_PRINT(("nCoeffis_Ring_Z\n"));
-//         coef = nInitChar(n_Q,NULL);  
-//     } else {
-//         DEBUG_PRINT(("!nCoeffis_Ring_Z\n"));
-//         coef = currRing->cf;
-//     }
-    coef = currRing->cf;
+     if(nCoeff_is_Ring_Z(coef)) {
+         DEBUG_PRINT(("nCoeffis_Ring_Z\n"));
+         coef = nInitChar(n_Q,NULL);  
+     } else {
+         DEBUG_PRINT(("!nCoeffis_Ring_Z\n"));
+         coef = currRing->cf;
+     }
     
     {
         number disc = maxord->getDisc();
@@ -2339,17 +2328,9 @@ poly get_nice_poly(poly polynom){
         number p = n_Init(primes_1000[i],coef);
         maxord = pmaximal(temp, p);
         n_Delete(&p,coef);
-//         nforder_delete(temp);
+//        nforder_delete(temp);
     }
-    
-    {
-        nforder * temp = maxord;
-        number p = temp->getDisc();
-        DEBUG_PRINT(("Maximize for temp->getDisc()=%d\n",p));
-        maxord = pmaximal(temp, p);
-        n_Delete(&p,coef);
-//         nforder_delete(temp);
-    }
+    //we assume that maxord is maximal
     
     {
         number disc = maxord->getDisc();
