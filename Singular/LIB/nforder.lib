@@ -61,3 +61,24 @@ proc myGCD(poly f, poly g)
   "Start myGCD";
   return(gcd(f,g));
 }
+
+proc GetSquarefree(poly f)
+"USAGE: GetSquarefree(poly f);
+RETURN:  the squarefree part of univariate polynomials or zero
+"
+{
+  int i = univariate(f);
+  if(i==-1){
+    return(poly(0));
+  }
+  poly g = diff(f,var(i));
+  poly h = gcd(f,g);
+  return(f/h);
+}
+example
+{ "EXAMPLE:";
+    LIB "nforder.so";
+    ring r=(ZZ),x,dp;
+    poly f = (x2+2)^2*(x2+3);
+    GetSquarefree(poly f);
+}

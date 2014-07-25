@@ -2338,8 +2338,8 @@ poly get_nice_poly(poly polynom){
         n_Delete(&disc,coef);
     }
     
-   
-   
+    maxord = maxord->simplify();
+    DEBUG_PRINT(("maxord->viewBasis()\n"));
     bigintmat * basis = bimChangeCoeff(maxord->viewBasis(),coef);
 //     nMapFunc f = n_SetMap(currRing->cf,coef);
 //     number div = maxord->getDiv();
@@ -2370,6 +2370,7 @@ poly get_nice_poly(poly polynom){
     int r1 = minkowski(basis,poly_in,deg,coef,precision,latticeNF);
     number c = NULL;
     while(latticeNF->LLL(c,NULL,false,false,true) && precision < 32767){
+        DEBUG_BIM(latticeNF->get_basis());
 //         delete latticeNF;
         precision = precision +5;
         DEBUG_VAR(precision);
@@ -2509,9 +2510,40 @@ bool is_primitive(bigintmat * element,int r1, int precision, poly out, const rin
     polycoef[deg] = n_Init(1,coef);
     poly testpoly = numbers2poly(polycoef,deg,coef,polyring);
     
-    int var = p_IsUnivariate(testpoly, polyring);
-    poly diff_testpoly = p_Diff(testpoly, var, polyring);
+    //int var = p_IsUnivariate(testpoly, polyring);
+    //poly diff_testpoly = p_Diff(testpoly, var, polyring);
     
+    DEBUG_PRINT(("check squarefree\n"));
+    idhdl squarefree=ggetid("GetSquarefreePoly");
+    
+    if(squarefree == NULL){
+        WerrorS("GetSquarefreePoly not found\n");
+        return NULL;
+    }
+    
+    poly testpoly_copy = p_Copy(testpoly,polyring);
+    
+    leftv arg = new sleftv();
+    arg->rtyp = POLY_CMD;
+    arg->data = (void*) testpoly_copy;
+    
+    if(iiMake_proc(squarefree,NULL,arg)){
+        WerrorS("Error: Can't use GetSquarefreePoly\n");
+        return NULL;
+    }
+   
+    printf("iiMake_proc: GetSquarefreePoly type %d, >>%s<<\n", iiRETURNEXPR.Typ(), (char *)iiRETURNEXPR.Data());
+    
+    poly test = (poly) iiRETURNEXPR.Data();
+    
+    
+    iiRETURNEXPR.CleanUp();
+    
+    if(p_Totaldegree(test,polyring)==p_Totaldegree(testpoly,polyring)){
+        *out = *numbers2poly(polycoef,deg,coef,polyring);
+        return true;
+    }
+    return false;
   /*  
     
     
