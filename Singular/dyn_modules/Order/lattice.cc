@@ -2310,12 +2310,10 @@ poly get_nice_poly(poly polynom){
         DEBUG_N(disc);
         n_Delete(&disc,coef);
     }
-    
-    int deg = (int) p_Totaldegree(polynom,currRing);
+        
+    number * poly_in;
+    int deg = poly2numbers(polynom,poly_in,currRing,coef);
     DEBUG_VAR(deg);
-    
-    number * poly_in = poly2numbers(polynom,currRing,coef);
-    
     
     int primes_1000[] = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233, 239, 241, 251, 257, 263, 269, 271, 277, 281, 283, 293, 307, 311, 313, 317, 331, 337, 347, 349, 353, 359, 367, 373, 379, 383, 389, 397, 401, 409, 419, 421, 431, 433, 439, 443, 449, 457, 461, 463, 467, 479, 487, 491, 499, 503, 509, 521, 523, 541, 547, 557, 563, 569, 571, 577, 587, 593, 599, 601, 607, 613, 617, 619, 631, 641, 643, 647, 653, 659, 661, 673, 677, 683, 691, 701, 709, 719, 727, 733, 739, 743, 751, 757, 761, 769, 773, 787, 797, 809, 811, 821, 823, 827, 829, 839, 853, 857, 859, 863, 877, 881, 883, 887, 907, 911, 919, 929, 937, 941, 947, 953, 967, 971, 977, 983, 991, 997};
     static int size_primes_1000 = 168;
@@ -2630,30 +2628,28 @@ bool is_primitive(bigintmat * element,int r1, int precision, poly out, const rin
 //     return false;   
 }
 
-number * poly2numbers(poly gls, ring polyring, coeffs coef){
+int poly2numbers(poly gls, number * &pcoeffs, ring polyring, coeffs coef){
     DEBUG_PRINT(("Start poly2numbers\n"));
     if(gls == NULL){
         WerrorS("No Input!");
-        return NULL;
+        return -1;
     }
-     
-
+    if(pcoeffs!=NULL){
+        WerrorS("Some data in array of number");
+        return -1;
+    }
+    //int ldummy;
     DEBUG_PRINT(("degree\n"));
     int deg = (int) p_Totaldegree(gls,polyring);
     DEBUG_VAR(deg);
-    
-    
-    number * pcoeffs = (number *) omAlloc0((deg+1) * sizeof(number));
-    
-    
     DEBUG_PRINT(("univ\n"));
     int vpos = p_IsUnivariate(gls, polyring);
     if(vpos <= 0){
         WerrorS("not univariate");
-        return NULL;
+        return -1;
     }
     poly piter = gls;
-    
+    pcoeffs = (number *) omAlloc0( (deg+1) * sizeof( number ) );
     nMapFunc f = n_SetMap(polyring->cf,coef);
     DEBUG_PRINT(("iterate\n"));
     for (int i= deg; i >= 0; i-- ) {
@@ -2669,8 +2665,9 @@ number * poly2numbers(poly gls, ring polyring, coeffs coef){
         DEBUG_N(pcoeffs[i]);
     }
     DEBUG_PRINT(("finished\n"));
-    return pcoeffs;
+    return deg;
 }
+
 
 poly numbers2poly(number * univpol, int deg, coeffs coef, ring polyring){
     DEBUG_PRINT(("Start numbers2poly\n"));
@@ -2794,8 +2791,8 @@ number t2norm(number * pol, int deg, coeffs coef, int precision){
 number t2norm(poly polynom, ring polyring, coeffs coef, int precision){
     DEBUG_PRINT(("t2 norm poly\n"));
     
-    int deg = (int) p_Totaldegree(polynom,polyring);
-    number * univpol = poly2numbers(polynom,polyring,coef);
+    number * univpol = NULL;
+    int deg = poly2numbers(polynom,univpol,polyring, coef);
 
     if(deg == -1){
         WerrorS("Not an univariate polynomial");

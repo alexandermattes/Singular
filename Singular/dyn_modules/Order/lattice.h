@@ -222,7 +222,7 @@ bool is_primitive(bigintmat * element,int r1, int precision, poly out, const rin
 //poly to number array and vice versa
 
 //maps poly to an array of coefficients
-number * poly2numbers(poly gls, ring polyring, coeffs coef);
+int poly2numbers(poly gls, number * &pcoeffs, ring polyring, coeffs coef);
 
 //return a polynomial over polyring from an array of number which represent the coefficents 
 poly numbers2poly(number * univpol, int deg, coeffs coef, ring polyring);

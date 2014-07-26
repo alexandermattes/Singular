@@ -387,8 +387,8 @@ void test_Poly() {
     
     poly g = get_nice_poly(f);
     
-    number * pcoeffs = poly2numbers(g,r, coef);
-    int degg = (int) p_Totaldegree(g,r);
+    number * pcoeffs = NULL;
+    int degg = poly2numbers(g,pcoeffs,r,coef);
     for(int i=0; i<=degg; i++) {
         n_Print(pcoeffs[i],coef);
         PrintS("\n");
